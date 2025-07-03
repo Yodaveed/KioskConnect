@@ -17,7 +17,7 @@ interface FreezeStickSelection {
 }
 
 export default function FreezeSticksFlow() {
-  const { setStep, setOrderNumber, resetOrder } = useOrder();
+  const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
   const [selection, setSelection] = useState<FreezeStickSelection>({
     size: null,
     flavors: [],
@@ -27,18 +27,23 @@ export default function FreezeSticksFlow() {
   });
 
   const { data: sizes = [] } = useQuery({
-    queryKey: ["/api/menu/size", 2], // Assuming freeze sticks menu ID is 2
-    queryFn: () => fetch("/api/menu/size?menuId=2").then(res => res.json()),
+    queryKey: ["/api/menu/size", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/size?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const { data: flavors = [] } = useQuery({
-    queryKey: ["/api/menu/flavor", 2],
-    queryFn: () => fetch("/api/menu/flavor?menuId=2").then(res => res.json()),
+    queryKey: ["/api/menu/flavor", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/flavor?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const { data: sauces = [] } = useQuery({
-    queryKey: ["/api/menu/sauce", 2],
-    queryFn: () => fetch("/api/menu/sauce?menuId=2").then(res => res.json()),
+    queryKey: ["/api/menu/sauce", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/sauce?menuId=${selectedMenuId}`).then(res => res.json()),
+  });
+
+  const { data: addons = [] } = useQuery({
+    queryKey: ["/api/menu/addon", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/addon?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const handleSizeSelect = (size: MenuItem) => {

@@ -110,6 +110,9 @@ Changelog:
 - July 03, 2025. Added QR code generation for table ordering
 - July 03, 2025. User tested ordering flow successfully
 - July 03, 2025. System ready for deployment
+- July 03, 2025. Enhanced with flexible ordering flows - 3-step, single-page, and custom flows
+- July 03, 2025. Created 5 menu types: Spaghetti, Burger, Soup (3-step), Pints (single-page), Freeze Sticks (custom)
+- July 03, 2025. Fixed menu item filtering to use correct menu IDs for each ordering flow
 ```
 
 ## User Preferences

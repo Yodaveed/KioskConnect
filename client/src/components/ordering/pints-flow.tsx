@@ -13,12 +13,12 @@ interface PintSelection {
 }
 
 export default function PintsFlow() {
-  const { setStep, setOrderNumber, resetOrder } = useOrder();
+  const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
   const [selections, setSelections] = useState<PintSelection>({});
 
   const { data: pints = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/base", 4], // Assuming pints menu ID is 4
-    queryFn: () => fetch("/api/menu/base?menuId=4").then(res => res.json()),
+    queryKey: ["/api/menu/flavor", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/flavor?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const handleQuantityChange = (pintId: number, delta: number) => {
