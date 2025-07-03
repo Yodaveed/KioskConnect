@@ -10,7 +10,7 @@ import type { MenuItem } from "@shared/schema";
 
 interface FreezeStickSelection {
   size: MenuItem | null;
-  flavors: MenuItem[];
+  flavorQuantities: { [flavorId: number]: number }; // flavorId -> quantity
   sauce: MenuItem | null;
   additionalSticks: number;
   additionalSauces: number;
@@ -20,7 +20,7 @@ export default function FreezeSticksFlow() {
   const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
   const [selection, setSelection] = useState<FreezeStickSelection>({
     size: null,
-    flavors: [],
+    flavorQuantities: {},
     sauce: null,
     additionalSticks: 0,
     additionalSauces: 0,
@@ -47,28 +47,48 @@ export default function FreezeSticksFlow() {
   });
 
   const handleSizeSelect = (size: MenuItem) => {
-    setSelection(prev => ({ ...prev, size }));
+    setSelection(prev => ({ 
+      ...prev, 
+      size,
+      flavorQuantities: {} // Reset flavors when size changes
+    }));
   };
 
-  const handleFlavorToggle = (flavor: MenuItem) => {
+  const getMaxSticks = () => {
+    if (!selection.size) return 0;
+    // Extract number from size name (e.g., "3 Sticks" -> 3)
+    const match = selection.size.name.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
+
+  const getTotalSticks = () => {
+    return Object.values(selection.flavorQuantities).reduce((sum, qty) => sum + qty, 0);
+  };
+
+  const handleFlavorQuantityChange = (flavorId: number, delta: number) => {
+    const maxSticks = getMaxSticks();
+    const currentTotal = getTotalSticks();
+    const currentQuantity = selection.flavorQuantities[flavorId] || 0;
+    const newQuantity = Math.max(0, currentQuantity + delta);
+    
+    // Check if adding this quantity would exceed the max sticks
+    const newTotal = currentTotal - currentQuantity + newQuantity;
+    if (newTotal > maxSticks) {
+      return; // Don't allow exceeding max sticks
+    }
+    
     setSelection(prev => {
-      const maxFlavors = prev.size?.maxQuantity || 1;
-      const currentFlavors = prev.flavors;
-      
-      if (currentFlavors.some(f => f.id === flavor.id)) {
-        // Remove flavor
-        return {
-          ...prev,
-          flavors: currentFlavors.filter(f => f.id !== flavor.id)
-        };
-      } else if (currentFlavors.length < maxFlavors) {
-        // Add flavor
-        return {
-          ...prev,
-          flavors: [...currentFlavors, flavor]
-        };
+      const newFlavorQuantities = { ...prev.flavorQuantities };
+      if (newQuantity === 0) {
+        delete newFlavorQuantities[flavorId];
+      } else {
+        newFlavorQuantities[flavorId] = newQuantity;
       }
-      return prev;
+      
+      return {
+        ...prev,
+        flavorQuantities: newFlavorQuantities
+      };
     });
   };
 
@@ -94,9 +114,11 @@ export default function FreezeSticksFlow() {
   };
 
   const canProceed = () => {
-    const requiredFlavors = selection.size?.maxQuantity || 1;
+    const maxSticks = getMaxSticks();
+    const totalSticks = getTotalSticks();
     return selection.size && 
-           selection.flavors.length === requiredFlavors && 
+           totalSticks > 0 && 
+           totalSticks <= maxSticks && 
            selection.sauce;
   };
 
@@ -116,8 +138,11 @@ export default function FreezeSticksFlow() {
         },
         {
           type: "flavors",
-          items: selection.flavors,
-          quantity: selection.flavors.length
+          items: Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
+            const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
+            return { flavor, quantity: qty };
+          }),
+          quantity: getTotalSticks()
         },
         {
           type: "sauce",
@@ -195,43 +220,62 @@ export default function FreezeSticksFlow() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm">2</span>
-              Choose Your Flavors ({selection.flavors.length}/{selection.size.maxQuantity || 1})
+              Choose Your Flavors ({getTotalSticks()}/{getMaxSticks()} sticks)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(flavors as MenuItem[]).map((flavor) => {
-                const isSelected = selection.flavors.some(f => f.id === flavor.id);
-                const canSelect = selection.flavors.length < (selection.size?.maxQuantity || 1);
+                const quantity = selection.flavorQuantities[flavor.id] || 0;
+                const maxSticks = getMaxSticks();
+                const currentTotal = getTotalSticks();
+                const canIncrease = currentTotal < maxSticks;
                 
                 return (
-                  <Card
-                    key={flavor.id}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      isSelected 
-                        ? 'border-primary bg-primary/5' 
-                        : canSelect 
-                        ? 'hover:border-primary/50' 
-                        : 'opacity-50 cursor-not-allowed'
-                    }`}
-                    onClick={() => (isSelected || canSelect) && handleFlavorToggle(flavor)}
-                  >
-                    <CardContent className="p-4 text-center">
-                      <h3 className="font-medium mb-1">{flavor.name}</h3>
-                      {isSelected && (
-                        <Badge className="bg-primary text-white">Selected</Badge>
-                      )}
+                  <Card key={flavor.id} className="border">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium">{flavor.name}</h3>
+                          <p className="text-sm text-gray-600">{flavor.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleFlavorQuantityChange(flavor.id, -1)}
+                            disabled={quantity === 0}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center font-medium">{quantity}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleFlavorQuantityChange(flavor.id, 1)}
+                            disabled={!canIncrease}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 );
               })}
+            </div>
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                Mix and match flavors up to {getMaxSticks()} sticks total. 
+                You currently have {getTotalSticks()} stick{getTotalSticks() !== 1 ? 's' : ''} selected.
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Step 3: Sauce Selection */}
-      {selection.size && selection.flavors.length === (selection.size.maxQuantity || 1) && (
+      {selection.size && getTotalSticks() > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -352,8 +396,14 @@ export default function FreezeSticksFlow() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>{selection.size?.name} ({selection.flavors.map(f => f.name).join(', ')})</span>
+                <span>{selection.size?.name}</span>
                 <span>${parseFloat(selection.size?.price.toString() || "0").toFixed(2)}</span>
+              </div>
+              <div className="text-sm text-gray-600 mb-2">
+                Flavors: {Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
+                  const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
+                  return `${flavor?.name} (${qty})`;
+                }).join(', ')}
               </div>
               <div className="flex justify-between">
                 <span>Sauce: {selection.sauce?.name}</span>
