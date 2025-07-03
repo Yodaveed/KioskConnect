@@ -1,0 +1,72 @@
+Create a responsive web-based kiosk ordering app optimized for tablets and mobile phones for an ice cream shop called IC Pasta.
+
+📱 Customer Ordering Experience
+Three-Step Ordering Flow:
+
+Step 1 (Pasta/Base): Customers select ONE base flavor/item from multiple options (e.g., Vanilla, Chocolate, Strawberry, Pistachio, etc.).
+
+Some items may include optional upcharges or modifiers (e.g., Dairy-Free +$1).
+
+Step 2 (Sauce): Customers select ONE sauce/topping from multiple options (e.g., White Chocolate, Strawberry Puree, Salted Caramel, etc.).
+
+Step 3 (Toppings): Customers select MULTIPLE toppings from a customizable checklist (e.g., Shredded Coconut, M&Ms, Swedish Fish, Almonds, etc.), including optional premium toppings with extra charges (e.g., Ferrero Rocher +$1).
+
+Visual Confirmation:
+
+Clearly summarize customer's selected items before order submission.
+
+Provide total pricing calculation (including additional upcharges clearly listed).
+
+Order Submission:
+
+Guests submit their order and see a confirmation page/message (“Thank you! Your order is being prepared.”).
+
+🖨️ Wi-Fi Cloud Printing Integration
+Automatically generate and send a formatted ticket to a cloud-enabled thermal receipt printer upon successful order submission.
+
+Ensure compatibility with common Wi-Fi-enabled printers (e.g., Star Micronics CloudPRNT, Epson TM series, or similar).
+
+🛠️ Admin Management Interface
+Web-based, secure login panel accessible by staff/owner.
+
+Allow easy management (CRUD operations) of:
+
+Menus (multiple types: Main Menu, Pint Menu, Specials Menu).
+
+Individual menu items (names, descriptions, prices, optional modifiers/upcharges).
+
+Limited-time specials (schedule start and end dates).
+
+📊 Analytics Dashboard (Admin-Only)
+Track basic ordering analytics:
+
+Most popular items and item combinations.
+
+Total daily/weekly/monthly order count.
+
+Revenue reporting (daily sales, average order amount).
+
+Present data visually through clear charts or simple reporting interfaces.
+
+🔗 QR Code Ordering
+Generate QR codes linking directly to the customer-facing ordering interface.
+
+Customers scanning QR codes with their mobile phones see a mobile-optimized version identical to the kiosk tablet.
+
+🎨 Customization & Flexibility
+Ensure the design (colors, fonts, logo) can be customized easily to match IC Pasta’s existing branding (referencing provided menu design aesthetic: playful, clear, sushi-style checklists).
+
+📝 Technical Clarifications (For Replit AI)
+Preferred Tech Stack:
+
+Frontend: React or Vue.js (responsive, optimized UI).
+
+Backend: Node.js or Python (Flask/FastAPI recommended).
+
+Database: SQLite for simplicity or cloud-hosted options if scalability desired.
+
+Cloud Printing: Utilize manufacturer-provided cloud-print API endpoints.
+
+Ensure robust error handling for both order submission and printer communication.
+
+Include clear documentation/comments within code to simplify future developer modifications.
