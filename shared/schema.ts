@@ -16,6 +16,8 @@ export const menus = pgTable("menus", {
   description: text("description"),
   isActive: boolean("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
+  orderingFlow: text("ordering_flow").default("three-step"), // "three-step", "single-page", "custom"
+  flowConfig: jsonb("flow_config"), // JSON config for custom flows
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -24,11 +26,14 @@ export const menuItems = pgTable("menu_items", {
   menuId: integer("menu_id").references(() => menus.id),
   name: text("name").notNull(),
   description: text("description"),
-  category: text("category").notNull(), // 'base', 'sauce', 'topping'
+  category: text("category").notNull(), // 'base', 'sauce', 'topping', 'size', 'flavor', 'addon'
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   imageUrl: text("image_url"),
   isActive: boolean("is_active").default(true),
   isPremium: boolean("is_premium").default(false),
+  maxQuantity: integer("max_quantity"), // For items like "pick 3 flavors"
+  isRequired: boolean("is_required").default(false), // For required selections
+  sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -90,6 +95,8 @@ export const insertMenuSchema = createInsertSchema(menus).pick({
   description: true,
   isActive: true,
   sortOrder: true,
+  orderingFlow: true,
+  flowConfig: true,
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
@@ -101,6 +108,9 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   imageUrl: true,
   isActive: true,
   isPremium: true,
+  maxQuantity: true,
+  isRequired: true,
+  sortOrder: true,
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({

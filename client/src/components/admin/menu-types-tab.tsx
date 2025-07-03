@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,6 +24,7 @@ const menuSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.number().default(0),
+  orderingFlow: z.enum(["three-step", "single-page", "custom"]).default("three-step"),
 });
 
 type MenuForm = z.infer<typeof menuSchema>;
@@ -43,6 +45,7 @@ export default function MenuTypesTab() {
       description: "",
       isActive: true,
       sortOrder: 0,
+      orderingFlow: "three-step",
     },
   });
 
@@ -128,6 +131,7 @@ export default function MenuTypesTab() {
       description: menu.description || "",
       isActive: Boolean(menu.isActive),
       sortOrder: Number(menu.sortOrder || 0),
+      orderingFlow: (menu.orderingFlow as "three-step" | "single-page" | "custom") || "three-step",
     });
     setIsDialogOpen(true);
   };
@@ -205,6 +209,28 @@ export default function MenuTypesTab() {
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="orderingFlow"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ordering Flow</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select ordering flow" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="three-step">Three-Step (Base → Sauce → Toppings)</SelectItem>
+                          <SelectItem value="single-page">Single Page (All items on one page)</SelectItem>
+                          <SelectItem value="custom">Custom (Special flow like Freeze Sticks)</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

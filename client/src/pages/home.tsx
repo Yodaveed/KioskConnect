@@ -9,6 +9,8 @@ import StepTwo from "@/components/ordering/step-two";
 import StepThree from "@/components/ordering/step-three";
 import OrderSummary from "@/components/ordering/order-summary";
 import OrderConfirmation from "@/components/ordering/order-confirmation";
+import FreezeSticksFlow from "@/components/ordering/freeze-sticks-flow";
+import PintsFlow from "@/components/ordering/pints-flow";
 import { useLocation } from "wouter";
 import type { Menu } from "@shared/schema";
 
@@ -24,7 +26,18 @@ export default function Home() {
   const handleMenuSelect = (menu: Menu) => {
     setSelectedMenu(menu);
     setSelectedMenuId(menu.id);
-    setStep(1); // Move to step 1 after menu selection
+    
+    // Route to appropriate flow based on menu type
+    switch (menu.orderingFlow) {
+      case "single-page":
+        setStep(5); // Single page flow
+        break;
+      case "custom":
+        setStep(6); // Custom flow (freeze sticks, etc.)
+        break;
+      default:
+        setStep(1); // Traditional 3-step flow
+    }
   };
 
   const renderMenuSelection = () => {
@@ -144,9 +157,11 @@ export default function Home() {
       case 3:
         return <StepThree />;
       case 4:
-        return <OrderSummary />;
-      case 5:
         return <OrderConfirmation />;
+      case 5:
+        return <PintsFlow />; // Single page flow
+      case 6:
+        return <FreezeSticksFlow />; // Custom flow
       default:
         return renderMenuSelection();
     }
