@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Settings, Eye, LogOut, BarChart3, Utensils, Receipt, QrCode } from "lucide-react";
+import { Settings, Eye, LogOut, BarChart3, Utensils, Receipt, QrCode, Menu as MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import DashboardTab from "@/components/admin/dashboard-tab";
+import MenuTypesTab from "@/components/admin/menu-types-tab";
 import MenuTab from "@/components/admin/menu-tab";
 import OrdersTab from "@/components/admin/orders-tab";
 import QrTab from "@/components/admin/qr-tab";
 
-type TabType = "dashboard" | "menu" | "orders" | "qr";
+type TabType = "dashboard" | "menu-types" | "menu" | "orders" | "qr";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
@@ -16,7 +17,8 @@ export default function AdminDashboard() {
 
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "menu", label: "Menu Management", icon: Utensils },
+    { id: "menu-types", label: "Menu Types", icon: MenuIcon },
+    { id: "menu", label: "Menu Items", icon: Utensils },
     { id: "orders", label: "Orders", icon: Receipt },
     { id: "qr", label: "QR Codes", icon: QrCode },
   ];
@@ -25,6 +27,8 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case "dashboard":
         return <DashboardTab />;
+      case "menu-types":
+        return <MenuTypesTab />;
       case "menu":
         return <MenuTab />;
       case "orders":

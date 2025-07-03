@@ -1,14 +1,64 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMenuItemSchema, insertOrderSchema, insertUserSchema } from "@shared/schema";
+import { insertMenuItemSchema, insertOrderSchema, insertUserSchema, insertMenuSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Menu endpoints
+  // Menu type endpoints
+  app.get("/api/menus", async (req, res) => {
+    try {
+      const menus = await storage.getMenus();
+      res.json(menus);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch menus" });
+    }
+  });
+
+  app.post("/api/menus", async (req, res) => {
+    try {
+      const validatedData = insertMenuSchema.parse(req.body);
+      const menu = await storage.createMenu(validatedData);
+      res.status(201).json(menu);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid menu data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create menu" });
+      }
+    }
+  });
+
+  app.put("/api/menus/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertMenuSchema.partial().parse(req.body);
+      const menu = await storage.updateMenu(parseInt(id), validatedData);
+      res.json(menu);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid menu data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update menu" });
+      }
+    }
+  });
+
+  app.delete("/api/menus/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteMenu(parseInt(id));
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete menu" });
+    }
+  });
+
+  // Menu item endpoints
   app.get("/api/menu", async (req, res) => {
     try {
-      const menuItems = await storage.getMenuItems();
+      const { menuId } = req.query;
+      const menuItems = await storage.getMenuItems(menuId ? parseInt(menuId as string) : undefined);
       res.json(menuItems);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch menu items" });
@@ -18,7 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/menu/:category", async (req, res) => {
     try {
       const { category } = req.params;
-      const menuItems = await storage.getMenuItemsByCategory(category);
+      const { menuId } = req.query;
+      const menuItems = await storage.getMenuItemsByCategory(category, menuId ? parseInt(menuId as string) : undefined);
       res.json(menuItems);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch menu items" });
@@ -188,12 +239,52 @@ async function initializeSampleData() {
       });
     }
 
-    // Create sample menu items
+    // Create default menus if they don't exist
+    const existingMenus = await storage.getMenus();
+    let spaghettiMenu, burgerMenu, soupMenu, pintsMenu;
+    
+    if (existingMenus.length === 0) {
+      spaghettiMenu = await storage.createMenu({
+        name: "Spaghetti",
+        description: "Our signature spaghetti ice cream menu",
+        isActive: true,
+        sortOrder: 1,
+      });
+      
+      burgerMenu = await storage.createMenu({
+        name: "Burger",
+        description: "Burger-style ice cream creations",
+        isActive: true,
+        sortOrder: 2,
+      });
+      
+      soupMenu = await storage.createMenu({
+        name: "Soup",
+        description: "Soup-style ice cream presentations",
+        isActive: true,
+        sortOrder: 3,
+      });
+      
+      pintsMenu = await storage.createMenu({
+        name: "Pints",
+        description: "Take-home pint containers",
+        isActive: true,
+        sortOrder: 4,
+      });
+    } else {
+      spaghettiMenu = existingMenus.find(m => m.name === "Spaghetti") || existingMenus[0];
+      burgerMenu = existingMenus.find(m => m.name === "Burger") || existingMenus[0];
+      soupMenu = existingMenus.find(m => m.name === "Soup") || existingMenus[0];
+      pintsMenu = existingMenus.find(m => m.name === "Pints") || existingMenus[0];
+    }
+
+    // Create sample menu items for Spaghetti menu
     const existingItems = await storage.getMenuItems();
     if (existingItems.length === 0) {
       const sampleItems = [
-        // Bases
+        // Bases for Spaghetti menu
         {
+          menuId: spaghettiMenu.id,
           name: "Vanilla",
           description: "Classic creamy vanilla ice cream made with real vanilla beans",
           category: "base",
@@ -203,6 +294,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Chocolate",
           description: "Rich and decadent chocolate ice cream with deep cocoa flavor",
           category: "base",
@@ -212,6 +304,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Strawberry",
           description: "Fresh strawberry ice cream with real fruit pieces",
           category: "base",
@@ -221,6 +314,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Pistachio",
           description: "Premium pistachio ice cream with roasted nuts",
           category: "base",
@@ -230,6 +324,7 @@ async function initializeSampleData() {
           isPremium: true,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Cookies & Cream",
           description: "Vanilla ice cream loaded with chocolate cookie pieces",
           category: "base",
@@ -239,6 +334,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Mint Chocolate Chip",
           description: "Refreshing mint ice cream with dark chocolate chips",
           category: "base",
@@ -247,8 +343,9 @@ async function initializeSampleData() {
           isActive: true,
           isPremium: false,
         },
-        // Sauces
+        // Sauces for Spaghetti menu
         {
+          menuId: spaghettiMenu.id,
           name: "White Chocolate",
           description: "Creamy white chocolate drizzle",
           category: "sauce",
@@ -258,6 +355,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Strawberry Puree",
           description: "Fresh strawberry sauce",
           category: "sauce",
@@ -267,6 +365,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Salted Caramel",
           description: "Sweet and salty caramel",
           category: "sauce",
@@ -276,6 +375,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Hot Fudge",
           description: "Rich chocolate fudge sauce",
           category: "sauce",
@@ -284,8 +384,9 @@ async function initializeSampleData() {
           isActive: true,
           isPremium: false,
         },
-        // Toppings
+        // Toppings for Spaghetti menu
         {
+          menuId: spaghettiMenu.id,
           name: "Shredded Coconut",
           description: "Fresh coconut flakes",
           category: "topping",
@@ -295,6 +396,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "M&Ms",
           description: "Colorful chocolate candies",
           category: "topping",
@@ -304,6 +406,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Swedish Fish",
           description: "Chewy fish-shaped candy",
           category: "topping",
@@ -313,6 +416,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Almonds",
           description: "Roasted almond pieces",
           category: "topping",
@@ -322,6 +426,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Rainbow Sprinkles",
           description: "Colorful sugar sprinkles",
           category: "topping",
@@ -331,6 +436,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Chocolate Chips",
           description: "Mini chocolate chips",
           category: "topping",
@@ -340,6 +446,7 @@ async function initializeSampleData() {
           isPremium: false,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Ferrero Rocher",
           description: "Premium chocolate hazelnut candy",
           category: "topping",
@@ -349,6 +456,7 @@ async function initializeSampleData() {
           isPremium: true,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Fresh Berries",
           description: "Seasonal fresh berries",
           category: "topping",
@@ -358,6 +466,7 @@ async function initializeSampleData() {
           isPremium: true,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Macarons",
           description: "French macarons",
           category: "topping",
@@ -367,6 +476,7 @@ async function initializeSampleData() {
           isPremium: true,
         },
         {
+          menuId: spaghettiMenu.id,
           name: "Gold Flakes",
           description: "Edible gold flakes",
           category: "topping",

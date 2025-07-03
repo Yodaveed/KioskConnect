@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IceCream, Settings } from "lucide-react";
+import { IceCream, Settings, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useOrder } from "@/hooks/use-order";
 import StepOne from "@/components/ordering/step-one";
 import StepTwo from "@/components/ordering/step-two";
@@ -9,14 +10,55 @@ import StepThree from "@/components/ordering/step-three";
 import OrderSummary from "@/components/ordering/order-summary";
 import OrderConfirmation from "@/components/ordering/order-confirmation";
 import { useLocation } from "wouter";
+import type { Menu } from "@shared/schema";
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const { currentStep, order, totalPrice, resetOrder } = useOrder();
+  const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
+  const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
 
-  const { data: menuItems = [] } = useQuery({
-    queryKey: ["/api/menu"],
+  const { data: menus = [] } = useQuery<Menu[]>({
+    queryKey: ["/api/menus"],
   });
+
+  const handleMenuSelect = (menu: Menu) => {
+    setSelectedMenu(menu);
+    setSelectedMenuId(menu.id);
+    setStep(1); // Move to step 1 after menu selection
+  };
+
+  const renderMenuSelection = () => {
+    return (
+      <div>
+        <div className="mb-8 text-center">
+          <h2 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h2>
+          <p className="text-gray-600 text-xl">Select from our delicious menu options</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {(menus as Menu[]).map((menu: Menu) => (
+            <Card
+              key={menu.id}
+              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary"
+              onClick={() => handleMenuSelect(menu)}
+            >
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <IceCream className="text-2xl text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-dark-slate mb-2">{menu.name}</h3>
+                <p className="text-gray-600 text-sm mb-4">{menu.description}</p>
+                <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                  Start Order
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const renderProgressBar = () => {
     const steps = [
@@ -30,39 +72,56 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center">
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                        currentStep >= step.number
-                          ? "bg-primary text-white"
-                          : "bg-gray-300 text-gray-600"
-                      }`}
-                    >
-                      {step.number}
-                    </div>
-                    <span
-                      className={`font-medium ${
-                        currentStep >= step.number
-                          ? "text-primary"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className="w-16 h-1 bg-gray-200 rounded ml-8">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStep(0)}
+                  className="text-xs"
+                >
+                  ← Change Menu
+                </Button>
+                {selectedMenu && (
+                  <span className="text-sm text-gray-600 font-medium">
+                    {selectedMenu.name} Menu
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-8">
+                {steps.map((step, index) => (
+                  <div key={step.number} className="flex items-center">
+                    <div className="flex items-center space-x-2">
                       <div
-                        className={`h-1 rounded transition-all duration-300 ${
-                          currentStep > step.number ? "w-full bg-primary" : "w-0"
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                          currentStep >= step.number
+                            ? "bg-primary text-white"
+                            : "bg-gray-300 text-gray-600"
                         }`}
-                      />
+                      >
+                        {step.number}
+                      </div>
+                      <span
+                        className={`font-medium ${
+                          currentStep >= step.number
+                            ? "text-primary"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        {step.label}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {index < steps.length - 1 && (
+                      <div className="w-16 h-1 bg-gray-200 rounded ml-8">
+                        <div
+                          className={`h-1 rounded transition-all duration-300 ${
+                            currentStep > step.number ? "w-full bg-primary" : "w-0"
+                          }`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Order Total</p>
@@ -76,6 +135,8 @@ export default function Home() {
 
   const renderStep = () => {
     switch (currentStep) {
+      case 0:
+        return renderMenuSelection();
       case 1:
         return <StepOne />;
       case 2:
@@ -87,7 +148,7 @@ export default function Home() {
       case 5:
         return <OrderConfirmation />;
       default:
-        return <StepOne />;
+        return renderMenuSelection();
     }
   };
 

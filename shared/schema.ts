@@ -10,8 +10,18 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false),
 });
 
+export const menus = pgTable("menus", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const menuItems = pgTable("menu_items", {
   id: serial("id").primaryKey(),
+  menuId: integer("menu_id").references(() => menus.id),
   name: text("name").notNull(),
   description: text("description"),
   category: text("category").notNull(), // 'base', 'sauce', 'topping'
@@ -41,6 +51,10 @@ export const orderItems = pgTable("order_items", {
 });
 
 // Relations
+export const menusRelations = relations(menus, ({ many }) => ({
+  menuItems: many(menuItems),
+}));
+
 export const ordersRelations = relations(orders, ({ many }) => ({
   orderItems: many(orderItems),
 }));
@@ -56,8 +70,12 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   }),
 }));
 
-export const menuItemsRelations = relations(menuItems, ({ many }) => ({
+export const menuItemsRelations = relations(menuItems, ({ many, one }) => ({
   orderItems: many(orderItems),
+  menu: one(menus, {
+    fields: [menuItems.menuId],
+    references: [menus.id],
+  }),
 }));
 
 // Zod schemas
@@ -67,7 +85,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   isAdmin: true,
 });
 
+export const insertMenuSchema = createInsertSchema(menus).pick({
+  name: true,
+  description: true,
+  isActive: true,
+  sortOrder: true,
+});
+
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
+  menuId: true,
   name: true,
   description: true,
   category: true,
@@ -95,6 +121,8 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Menu = typeof menus.$inferSelect;
+export type InsertMenu = z.infer<typeof insertMenuSchema>;
 export type MenuItem = typeof menuItems.$inferSelect;
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type Order = typeof orders.$inferSelect;

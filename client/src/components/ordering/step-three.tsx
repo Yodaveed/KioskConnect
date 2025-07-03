@@ -7,10 +7,11 @@ import { useOrder } from "@/hooks/use-order";
 import type { MenuItem } from "@shared/schema";
 
 export default function StepThree() {
-  const { toggleTopping, setStep, order } = useOrder();
+  const { toggleTopping, setStep, order, selectedMenuId } = useOrder();
 
   const { data: toppingItems = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/topping"],
+    queryKey: ["/api/menu/topping", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/topping?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const handleToggleTopping = (item: MenuItem) => {

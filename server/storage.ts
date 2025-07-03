@@ -1,4 +1,4 @@
-import { users, menuItems, orders, orderItems, type User, type InsertUser, type MenuItem, type InsertMenuItem, type Order, type InsertOrder, type OrderItem, type InsertOrderItem } from "@shared/schema";
+import { users, menus, menuItems, orders, orderItems, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type Order, type InsertOrder, type OrderItem, type InsertOrderItem } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
@@ -8,9 +8,16 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  // Menu methods
-  getMenuItems(): Promise<MenuItem[]>;
-  getMenuItemsByCategory(category: string): Promise<MenuItem[]>;
+  // Menu type methods
+  getMenus(): Promise<Menu[]>;
+  getMenuById(id: number): Promise<Menu | undefined>;
+  createMenu(menu: InsertMenu): Promise<Menu>;
+  updateMenu(id: number, menu: Partial<InsertMenu>): Promise<Menu>;
+  deleteMenu(id: number): Promise<void>;
+  
+  // Menu item methods
+  getMenuItems(menuId?: number): Promise<MenuItem[]>;
+  getMenuItemsByCategory(category: string, menuId?: number): Promise<MenuItem[]>;
   createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
   updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem>;
   deleteMenuItem(id: number): Promise<void>;
@@ -52,11 +59,51 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getMenuItems(): Promise<MenuItem[]> {
+  async getMenus(): Promise<Menu[]> {
+    return await db.select().from(menus).where(eq(menus.isActive, true)).orderBy(menus.sortOrder);
+  }
+
+  async getMenuById(id: number): Promise<Menu | undefined> {
+    const [menu] = await db.select().from(menus).where(eq(menus.id, id));
+    return menu || undefined;
+  }
+
+  async createMenu(menu: InsertMenu): Promise<Menu> {
+    const [newMenu] = await db
+      .insert(menus)
+      .values(menu)
+      .returning();
+    return newMenu;
+  }
+
+  async updateMenu(id: number, menu: Partial<InsertMenu>): Promise<Menu> {
+    const [updated] = await db
+      .update(menus)
+      .set(menu)
+      .where(eq(menus.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteMenu(id: number): Promise<void> {
+    await db.update(menus).set({ isActive: false }).where(eq(menus.id, id));
+  }
+
+  async getMenuItems(menuId?: number): Promise<MenuItem[]> {
+    if (menuId) {
+      return await db.select().from(menuItems).where(
+        and(eq(menuItems.menuId, menuId), eq(menuItems.isActive, true))
+      );
+    }
     return await db.select().from(menuItems).where(eq(menuItems.isActive, true));
   }
 
-  async getMenuItemsByCategory(category: string): Promise<MenuItem[]> {
+  async getMenuItemsByCategory(category: string, menuId?: number): Promise<MenuItem[]> {
+    if (menuId) {
+      return await db.select().from(menuItems).where(
+        and(eq(menuItems.category, category), eq(menuItems.menuId, menuId), eq(menuItems.isActive, true))
+      );
+    }
     return await db.select().from(menuItems).where(
       and(eq(menuItems.category, category), eq(menuItems.isActive, true))
     );

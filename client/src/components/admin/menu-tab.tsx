@@ -17,7 +17,7 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { MenuItem } from "@shared/schema";
+import type { MenuItem, Menu } from "@shared/schema";
 
 const menuItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -27,6 +27,7 @@ const menuItemSchema = z.object({
   imageUrl: z.string().optional(),
   isActive: z.boolean().default(true),
   isPremium: z.boolean().default(false),
+  menuId: z.number().min(1, "Menu is required"),
 });
 
 type MenuItemForm = z.infer<typeof menuItemSchema>;
@@ -34,10 +35,19 @@ type MenuItemForm = z.infer<typeof menuItemSchema>;
 export default function MenuTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [selectedMenuId, setSelectedMenuId] = useState<number | null>(null);
   const { toast } = useToast();
 
+  const { data: menus = [], isLoading: menusLoading } = useQuery({
+    queryKey: ["/api/menus"],
+  });
+
   const { data: menuItems = [], isLoading } = useQuery({
-    queryKey: ["/api/menu"],
+    queryKey: ["/api/menu", selectedMenuId],
+    queryFn: () => selectedMenuId ? 
+      fetch(`/api/menu?menuId=${selectedMenuId}`).then(res => res.json()) : 
+      Promise.resolve([]),
+    enabled: !!selectedMenuId,
   });
 
   const form = useForm<MenuItemForm>({
@@ -50,6 +60,7 @@ export default function MenuTab() {
       imageUrl: "",
       isActive: true,
       isPremium: false,
+      menuId: 1,
     },
   });
 
@@ -136,8 +147,9 @@ export default function MenuTab() {
       category: item.category as "base" | "sauce" | "topping",
       price: item.price,
       imageUrl: item.imageUrl || "",
-      isActive: item.isActive,
-      isPremium: item.isPremium,
+      isActive: Boolean(item.isActive ?? true),
+      isPremium: Boolean(item.isPremium ?? false),
+      menuId: Number(item.menuId) || 1,
     });
     setIsDialogOpen(true);
   };
@@ -172,9 +184,22 @@ export default function MenuTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-dark-slate">Menu Management</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+        <h2 className="text-2xl font-bold text-dark-slate">Menu Items</h2>
+        <div className="flex items-center gap-4">
+          <Select value={selectedMenuId?.toString()} onValueChange={(value) => setSelectedMenuId(Number(value))}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select menu type" />
+            </SelectTrigger>
+            <SelectContent>
+              {(menus as Menu[]).map((menu) => (
+                <SelectItem key={menu.id} value={menu.id.toString()}>
+                  {menu.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
               Add New Item
@@ -262,6 +287,30 @@ export default function MenuTab() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="menuId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Menu Type</FormLabel>
+                      <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value?.toString()}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select menu type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(menus as Menu[]).map((menu) => (
+                            <SelectItem key={menu.id} value={menu.id.toString()}>
+                              {menu.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex items-center space-x-4">
                   <FormField
                     control={form.control}
@@ -321,6 +370,7 @@ export default function MenuTab() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -336,7 +386,7 @@ export default function MenuTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {menuItems.map((item: MenuItem) => (
+              {(menuItems as MenuItem[]).map((item: MenuItem) => (
                 <TableRow key={item.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">

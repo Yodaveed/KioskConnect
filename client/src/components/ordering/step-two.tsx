@@ -6,10 +6,11 @@ import { useOrder } from "@/hooks/use-order";
 import type { MenuItem } from "@shared/schema";
 
 export default function StepTwo() {
-  const { selectSauce, setStep, order } = useOrder();
+  const { selectSauce, setStep, order, selectedMenuId } = useOrder();
 
   const { data: sauceItems = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/sauce"],
+    queryKey: ["/api/menu/sauce", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/sauce?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const handleSelectSauce = (item: MenuItem) => {

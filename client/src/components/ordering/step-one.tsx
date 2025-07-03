@@ -8,11 +8,12 @@ import { useOrder } from "@/hooks/use-order";
 import type { MenuItem } from "@shared/schema";
 
 export default function StepOne() {
-  const { selectBase, setStep, order } = useOrder();
+  const { selectBase, setStep, order, selectedMenuId } = useOrder();
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, boolean>>({});
 
   const { data: baseItems = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/base"],
+    queryKey: ["/api/menu/base", selectedMenuId],
+    queryFn: () => fetch(`/api/menu/base?menuId=${selectedMenuId}`).then(res => res.json()),
   });
 
   const handleSelectBase = (item: MenuItem) => {

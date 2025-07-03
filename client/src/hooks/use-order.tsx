@@ -11,6 +11,7 @@ interface OrderItem {
 
 interface OrderState {
   currentStep: number;
+  selectedMenuId?: number;
   order: {
     base?: OrderItem;
     sauce?: OrderItem;
@@ -21,6 +22,7 @@ interface OrderState {
   
   // Actions
   setStep: (step: number) => void;
+  setSelectedMenuId: (menuId: number) => void;
   selectBase: (item: OrderItem) => void;
   selectSauce: (item: OrderItem) => void;
   toggleTopping: (item: OrderItem) => void;
@@ -32,7 +34,8 @@ interface OrderState {
 export const useOrder = create<OrderState>()(
   persist(
     (set, get) => ({
-      currentStep: 1,
+      currentStep: 0, // Start at 0 for menu selection
+      selectedMenuId: undefined,
       order: {
         toppings: [],
       },
@@ -40,6 +43,8 @@ export const useOrder = create<OrderState>()(
       orderNumber: undefined,
 
       setStep: (step) => set({ currentStep: step }),
+
+      setSelectedMenuId: (menuId) => set({ selectedMenuId: menuId }),
 
       selectBase: (item) => {
         set((state) => ({
@@ -101,7 +106,8 @@ export const useOrder = create<OrderState>()(
 
       resetOrder: () => {
         set({
-          currentStep: 1,
+          currentStep: 0,
+          selectedMenuId: undefined,
           order: { toppings: [] },
           totalPrice: 0,
           orderNumber: undefined,
