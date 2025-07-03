@@ -12,16 +12,20 @@ import OrderSummary from "@/components/ordering/order-summary";
 import OrderConfirmation from "@/components/ordering/order-confirmation";
 import FreezeSticksFlow from "@/components/ordering/freeze-sticks-flow";
 import PintsFlow from "@/components/ordering/pints-flow";
-import CartAccess from "@/components/cart/cart-access";
+import SimpleCart from "@/components/cart/simple-cart";
+import OrderWrapper from "@/components/ordering/order-wrapper";
+import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
 import type { Menu, Cart } from "@shared/schema";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
-  const [activeCart, setActiveCart] = useState<Cart | null>(null);
   const [showCartDialog, setShowCartDialog] = useState(false);
+  const [showCartViewer, setShowCartViewer] = useState(false);
+  const [customerName, setCustomerName] = useState<string>('');
   const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
+  const { cartId, items, isActive, setCartId, addItem } = useCart();
 
   // Reset order state when component mounts to start fresh
   useEffect(() => {
@@ -157,24 +161,39 @@ export default function Home() {
   };
 
   const renderStep = () => {
-    switch (currentStep) {
-      case 0:
-        return renderMenuSelection();
-      case 1:
-        return <StepOne />;
-      case 2:
-        return <StepTwo />;
-      case 3:
-        return <StepThree />;
-      case 4:
-        return <OrderConfirmation />;
-      case 5:
-        return <PintsFlow />; // Single page flow
-      case 6:
-        return <FreezeSticksFlow />; // Custom flow
-      default:
-        return renderMenuSelection();
+    if (currentStep === 0) {
+      return renderMenuSelection();
     }
+
+    if (!selectedMenu) {
+      return renderMenuSelection();
+    }
+
+    // Wrap all ordering flows with name collection
+    const orderingFlow = () => {
+      switch (currentStep) {
+        case 1:
+          return <StepOne />;
+        case 2:
+          return <StepTwo />;
+        case 3:
+          return <StepThree />;
+        case 4:
+          return <OrderConfirmation />;
+        case 5:
+          return <PintsFlow />; // Single page flow
+        case 6:
+          return <FreezeSticksFlow />; // Custom flow
+        default:
+          return <StepOne />;
+      }
+    };
+
+    return (
+      <OrderWrapper menu={selectedMenu}>
+        {orderingFlow()}
+      </OrderWrapper>
+    );
   };
 
   return (
@@ -187,9 +206,27 @@ export default function Home() {
               <IceCream className="text-3xl" />
               <h1 className="text-3xl md:text-4xl font-bold">IC Pasta</h1>
             </div>
-            <div className="text-right">
-              <p className="text-sm opacity-90">Welcome!</p>
-              <p className="text-lg font-semibold">Start Your Order</p>
+            <div className="flex items-center gap-3">
+              {/* Cart Access */}
+              <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {isActive ? `Cart (${items.length})` : 'Group Cart'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Group Cart</DialogTitle>
+                  </DialogHeader>
+                  <SimpleCart />
+                </DialogContent>
+              </Dialog>
+
+              <div className="text-right">
+                <p className="text-sm opacity-90">Welcome!</p>
+                <p className="text-lg font-semibold">Start Your Order</p>
+              </div>
             </div>
           </div>
         </div>
