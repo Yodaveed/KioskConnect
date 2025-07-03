@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IceCream, Settings, ArrowRight } from "lucide-react";
+import { IceCream, Settings, ArrowRight, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useOrder } from "@/hooks/use-order";
 import StepOne from "@/components/ordering/step-one";
 import StepTwo from "@/components/ordering/step-two";
@@ -11,12 +12,15 @@ import OrderSummary from "@/components/ordering/order-summary";
 import OrderConfirmation from "@/components/ordering/order-confirmation";
 import FreezeSticksFlow from "@/components/ordering/freeze-sticks-flow";
 import PintsFlow from "@/components/ordering/pints-flow";
+import CartAccess from "@/components/cart/cart-access";
 import { useLocation } from "wouter";
-import type { Menu } from "@shared/schema";
+import type { Menu, Cart } from "@shared/schema";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
+  const [activeCart, setActiveCart] = useState<Cart | null>(null);
+  const [showCartDialog, setShowCartDialog] = useState(false);
   const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
 
   // Reset order state when component mounts to start fresh

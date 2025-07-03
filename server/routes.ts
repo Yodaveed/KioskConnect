@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMenuItemSchema, insertOrderSchema, insertUserSchema, insertMenuSchema } from "@shared/schema";
+import { insertMenuItemSchema, insertOrderSchema, insertUserSchema, insertMenuSchema, insertCartSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -217,6 +217,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to generate QR code" });
+    }
+  });
+
+  // Cart endpoints
+  app.post("/api/carts", async (req, res) => {
+    try {
+      const validatedData = insertCartSchema.parse(req.body);
+      const cart = await storage.createCart(validatedData);
+      res.status(201).json(cart);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid cart data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create cart" });
+      }
+    }
+  });
+
+  app.get("/api/carts/:cartId", async (req, res) => {
+    try {
+      const cart = await storage.getCart(req.params.cartId);
+      if (!cart) {
+        return res.status(404).json({ error: "Cart not found" });
+      }
+      res.json(cart);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch cart" });
+    }
+  });
+
+  app.put("/api/carts/:cartId", async (req, res) => {
+    try {
+      const validatedData = insertCartSchema.partial().parse(req.body);
+      const cart = await storage.updateCart(req.params.cartId, validatedData);
+      res.json(cart);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid cart data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update cart" });
+      }
+    }
+  });
+
+  app.delete("/api/carts/:cartId", async (req, res) => {
+    try {
+      await storage.deleteCart(req.params.cartId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete cart" });
+    }
+  });
+
+  // Sold-out endpoints
+  app.put("/api/menu-items/:id/sold-out", async (req, res) => {
+    try {
+      const { soldOut } = req.body;
+      const itemId = parseInt(req.params.id);
+      
+      if (typeof soldOut !== 'boolean') {
+        return res.status(400).json({ error: "soldOut must be a boolean" });
+      }
+      
+      const updatedItem = await storage.markItemSoldOut(itemId, soldOut);
+      res.json(updatedItem);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update sold-out status" });
     }
   });
 

@@ -31,6 +31,7 @@ export const menuItems = pgTable("menu_items", {
   imageUrl: text("image_url"),
   isActive: boolean("is_active").default(true),
   isPremium: boolean("is_premium").default(false),
+  isSoldOut: boolean("is_sold_out").default(false),
   maxQuantity: integer("max_quantity"), // For items like "pick 3 flavors"
   isRequired: boolean("is_required").default(false), // For required selections
   sortOrder: integer("sort_order").default(0),
@@ -40,10 +41,21 @@ export const menuItems = pgTable("menu_items", {
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   orderNumber: text("order_number").notNull().unique(),
+  customerName: text("customer_name"),
   status: text("status").notNull().default("pending"), // 'pending', 'preparing', 'completed'
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   items: jsonb("items").notNull(), // Store order items as JSON
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const carts = pgTable("carts", {
+  id: serial("id").primaryKey(),
+  cartId: text("cart_id").notNull().unique(), // UUID for sharing
+  customerName: text("customer_name"),
+  items: jsonb("items").notNull().default('[]'),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).default('0'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const orderItems = pgTable("order_items", {
@@ -108,6 +120,7 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   imageUrl: true,
   isActive: true,
   isPremium: true,
+  isSoldOut: true,
   maxQuantity: true,
   isRequired: true,
   sortOrder: true,
@@ -115,9 +128,17 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
   orderNumber: true,
+  customerName: true,
   status: true,
   totalAmount: true,
   items: true,
+});
+
+export const insertCartSchema = createInsertSchema(carts).pick({
+  cartId: true,
+  customerName: true,
+  items: true,
+  totalAmount: true,
 });
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
@@ -139,3 +160,5 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type Cart = typeof carts.$inferSelect;
+export type InsertCart = z.infer<typeof insertCartSchema>;

@@ -1,4 +1,4 @@
-import { users, menus, menuItems, orders, orderItems, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type Order, type InsertOrder, type OrderItem, type InsertOrderItem } from "@shared/schema";
+import { users, menus, menuItems, orders, orderItems, carts, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Cart, type InsertCart } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
@@ -38,6 +38,15 @@ export interface IStorage {
   
   // QR Code methods
   generateOrderNumber(): string;
+  
+  // Cart methods
+  createCart(cart: InsertCart): Promise<Cart>;
+  getCart(cartId: string): Promise<Cart | undefined>;
+  updateCart(cartId: string, cart: Partial<InsertCart>): Promise<Cart>;
+  deleteCart(cartId: string): Promise<void>;
+  
+  // Sold-out methods
+  markItemSoldOut(itemId: number, soldOut: boolean): Promise<MenuItem>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -204,6 +213,43 @@ export class DatabaseStorage implements IStorage {
     const day = String(date.getDate()).padStart(2, '0');
     const timestamp = Date.now().toString().slice(-4);
     return `IC${year}${month}${day}-${timestamp}`;
+  }
+
+  // Cart methods
+  async createCart(cart: InsertCart): Promise<Cart> {
+    const [newCart] = await db
+      .insert(carts)
+      .values(cart)
+      .returning();
+    return newCart;
+  }
+
+  async getCart(cartId: string): Promise<Cart | undefined> {
+    const [cart] = await db.select().from(carts).where(eq(carts.cartId, cartId));
+    return cart || undefined;
+  }
+
+  async updateCart(cartId: string, cart: Partial<InsertCart>): Promise<Cart> {
+    const [updatedCart] = await db
+      .update(carts)
+      .set({ ...cart, updatedAt: new Date() })
+      .where(eq(carts.cartId, cartId))
+      .returning();
+    return updatedCart;
+  }
+
+  async deleteCart(cartId: string): Promise<void> {
+    await db.delete(carts).where(eq(carts.cartId, cartId));
+  }
+
+  // Sold-out methods
+  async markItemSoldOut(itemId: number, soldOut: boolean): Promise<MenuItem> {
+    const [updatedItem] = await db
+      .update(menuItems)
+      .set({ isSoldOut: soldOut })
+      .where(eq(menuItems.id, itemId))
+      .returning();
+    return updatedItem;
   }
 }
 

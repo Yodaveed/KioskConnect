@@ -113,6 +113,9 @@ Changelog:
 - July 03, 2025. Enhanced with flexible ordering flows - 3-step, single-page, and custom flows
 - July 03, 2025. Created 5 menu types: Spaghetti, Burger, Soup (3-step), Pints (single-page), Freeze Sticks (custom)
 - July 03, 2025. Fixed menu item filtering to use correct menu IDs for each ordering flow
+- July 03, 2025. Added group cart functionality for multiple orders on one check
+- July 03, 2025. Implemented customer name collection before order submission
+- July 03, 2025. Created sold-out item management system for admin dashboard
 ```
 
 ## User Preferences
