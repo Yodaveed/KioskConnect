@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IceCream, Settings, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,13 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
   const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
+
+  // Reset order state when component mounts if we're not in an active order
+  useEffect(() => {
+    if (currentStep > 0 && !selectedMenu) {
+      resetOrder();
+    }
+  }, []);
 
   const { data: menus = [] } = useQuery<Menu[]>({
     queryKey: ["/api/menus"],
@@ -186,7 +193,25 @@ export default function Home() {
       </header>
 
       {/* Progress Bar */}
-      {currentStep < 5 && renderProgressBar()}
+      {currentStep > 0 && currentStep < 5 && renderProgressBar()}
+      
+      {/* Home Button for non-traditional flows */}
+      {currentStep >= 5 && (
+        <div className="bg-white shadow-sm">
+          <div className="max-w-6xl mx-auto px-4 py-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetOrder();
+                setSelectedMenu(null);
+              }}
+              className="text-sm"
+            >
+              ← Back to Menu Selection
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
