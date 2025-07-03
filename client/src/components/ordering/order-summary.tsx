@@ -2,12 +2,14 @@ import { Edit, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrder } from "@/hooks/use-order";
+import { useCart } from "@/hooks/use-cart";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OrderSummary() {
-  const { order, totalPrice, setStep, setOrderNumber } = useOrder();
+  const { order, totalPrice, setStep, setOrderNumber, selectedMenuId } = useOrder();
+  const { isActive, addItem } = useCart();
   const { toast } = useToast();
 
   const placeOrderMutation = useMutation({
@@ -26,6 +28,22 @@ export default function OrderSummary() {
     },
     onSuccess: (data) => {
       setOrderNumber(data.orderNumber);
+      
+      // Add to cart if cart is active
+      if (isActive) {
+        // Get customer name from the DOM element set by OrderWrapper
+        const customerNameElement = document.querySelector('[data-customer-name]');
+        const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+        
+        // Add item to cart
+        addItem({
+          customerName,
+          menuType: getMenuTypeName(),
+          orderData: order,
+          totalPrice: totalPrice
+        });
+      }
+      
       setStep(5);
       toast({
         title: "Order placed successfully!",
@@ -40,6 +58,18 @@ export default function OrderSummary() {
       });
     },
   });
+
+  const getMenuTypeName = () => {
+    // Get menu type name based on selectedMenuId
+    const menuNames = {
+      6: "Spaghetti",
+      7: "Burger", 
+      8: "Soup",
+      9: "Pints",
+      10: "Freeze Sticks"
+    };
+    return menuNames[selectedMenuId as keyof typeof menuNames] || "Custom Order";
+  };
 
   const handlePlaceOrder = () => {
     placeOrderMutation.mutate();

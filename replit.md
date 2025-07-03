@@ -116,6 +116,8 @@ Changelog:
 - July 03, 2025. Added group cart functionality for multiple orders on one check
 - July 03, 2025. Implemented customer name collection before order submission
 - July 03, 2025. Created sold-out item management system for admin dashboard
+- July 03, 2025. Simplified cart system with post-order cart creation via "Add to This Order" button
+- July 03, 2025. Enhanced order confirmation with intuitive cart creation flow and friendly cart IDs
 ```
 
 ## User Preferences

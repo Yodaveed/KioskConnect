@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, ShoppingCart } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
+import { useCart } from "@/hooks/use-cart";
 import type { MenuItem } from "@shared/schema";
 
 interface PintSelection {
@@ -14,6 +15,7 @@ interface PintSelection {
 
 export default function PintsFlow() {
   const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
+  const { isActive, addItem } = useCart();
   const [selections, setSelections] = useState<PintSelection>({});
 
   const { data: pints = [], isLoading } = useQuery({
@@ -68,6 +70,21 @@ export default function PintsFlow() {
       }),
       total: getTotalPrice()
     };
+    
+    // Add to cart if cart is active
+    if (isActive) {
+      // Get customer name from the DOM element set by OrderWrapper
+      const customerNameElement = document.querySelector('[data-customer-name]');
+      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+      
+      // Add item to cart
+      addItem({
+        customerName,
+        menuType: "Pints",
+        orderData: customOrder,
+        totalPrice: getTotalPrice()
+      });
+    }
     
     localStorage.setItem('currentOrder', JSON.stringify(customOrder));
     setStep(4); // Go to confirmation

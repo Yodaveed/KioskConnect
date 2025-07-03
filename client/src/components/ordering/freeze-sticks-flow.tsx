@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, ArrowRight } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
+import { useCart } from "@/hooks/use-cart";
 import type { MenuItem } from "@shared/schema";
 
 interface FreezeStickSelection {
@@ -18,6 +19,7 @@ interface FreezeStickSelection {
 
 export default function FreezeSticksFlow() {
   const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
+  const { isActive, addItem } = useCart();
   const [selection, setSelection] = useState<FreezeStickSelection>({
     size: null,
     flavorQuantities: {},
@@ -164,6 +166,21 @@ export default function FreezeSticksFlow() {
       ],
       total: calculateTotal()
     };
+    
+    // Add to cart if cart is active
+    if (isActive) {
+      // Get customer name from the DOM element set by OrderWrapper
+      const customerNameElement = document.querySelector('[data-customer-name]');
+      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+      
+      // Add item to cart
+      addItem({
+        customerName,
+        menuType: "Freeze Sticks",
+        orderData: customOrder,
+        totalPrice: calculateTotal()
+      });
+    }
     
     // Store in localStorage for now (you can save to backend later)
     localStorage.setItem('currentOrder', JSON.stringify(customOrder));

@@ -57,62 +57,6 @@ export default function Home() {
   const renderMenuSelection = () => {
     return (
       <div className="space-y-8">
-        {/* Group Ordering CTA */}
-        {!isActive && (
-          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6 text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Users className="h-8 w-8 text-blue-600 mr-3" />
-                <h3 className="text-2xl font-bold text-blue-900">Ordering with Friends?</h3>
-              </div>
-              <p className="text-blue-700 mb-4 text-lg">
-                Create a group cart so everyone can add their orders together!
-              </p>
-              <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
-                <DialogTrigger asChild>
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                    <Users className="h-5 w-5 mr-2" />
-                    Start Group Cart
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Group Cart</DialogTitle>
-                  </DialogHeader>
-                  <EasyCart />
-                </DialogContent>
-              </Dialog>
-            </CardContent>
-          </Card>
-        )}
-
-        {isActive && (
-          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center mb-2">
-                <ShoppingCart className="h-6 w-6 text-green-600 mr-2" />
-                <h3 className="text-lg font-semibold text-green-900">Group Cart: {cartId}</h3>
-              </div>
-              <p className="text-green-700 text-sm mb-3">
-                {items.length} items • Share "{cartId}" with your group
-              </p>
-              <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
-                    View Cart
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Group Cart</DialogTitle>
-                  </DialogHeader>
-                  <EasyCart />
-                </DialogContent>
-              </Dialog>
-            </CardContent>
-          </Card>
-        )}
-
         <div className="text-center">
           <h2 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h2>
           <p className="text-gray-600 text-xl">Select from our delicious menu options</p>
@@ -263,21 +207,23 @@ export default function Home() {
               <h1 className="text-3xl md:text-4xl font-bold">IC Pasta</h1>
             </div>
             <div className="flex items-center gap-3">
-              {/* Cart Access */}
-              <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    {isActive ? `Cart (${items.length})` : 'Group Cart'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Group Cart</DialogTitle>
-                  </DialogHeader>
-                  <EasyCart />
-                </DialogContent>
-              </Dialog>
+              {/* Cart Access - Only show when cart is active */}
+              {isActive && (
+                <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      {cartId} ({items.length})
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Group Cart</DialogTitle>
+                    </DialogHeader>
+                    <EasyCart />
+                  </DialogContent>
+                </Dialog>
+              )}
 
               <div className="text-right">
                 <p className="text-sm opacity-90">Welcome!</p>
