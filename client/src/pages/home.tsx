@@ -19,11 +19,10 @@ export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
   const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
 
-  // Reset order state when component mounts if we're not in an active order
+  // Reset order state when component mounts to start fresh
   useEffect(() => {
-    if (currentStep > 0 && !selectedMenu) {
-      resetOrder();
-    }
+    // Clear any persistent order state to start fresh
+    resetOrder();
   }, []);
 
   const { data: menus = [] } = useQuery<Menu[]>({

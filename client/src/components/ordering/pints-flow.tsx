@@ -19,6 +19,15 @@ export default function PintsFlow() {
   const { data: pints = [], isLoading } = useQuery({
     queryKey: ["/api/menu/flavor", selectedMenuId],
     queryFn: () => fetch(`/api/menu/flavor?menuId=${selectedMenuId}`).then(res => res.json()),
+    enabled: !!selectedMenuId, // Only run query when we have a menu ID
+  });
+
+  // Debug logging
+  console.log('PintsFlow Debug:', {
+    selectedMenuId,
+    isLoading,
+    pintsLength: pints.length,
+    pints
   });
 
   const handleQuantityChange = (pintId: number, delta: number) => {
@@ -68,6 +77,32 @@ export default function PintsFlow() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!selectedMenuId) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No menu selected</p>
+          <Button onClick={() => setStep(0)} variant="outline">
+            Go to Menu Selection
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (pints.length === 0 && !isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No pints available for this menu</p>
+          <Button onClick={() => setStep(0)} variant="outline">
+            Go to Menu Selection
+          </Button>
+        </div>
       </div>
     );
   }
