@@ -34,16 +34,19 @@ export const useCart = create<CartState>()(
 
       setCartId: (cartId: string) => set({ cartId, isActive: true }),
 
-      addItem: (item) => set((state) => ({
-        items: [
-          ...state.items,
-          {
+      addItem: (item) => {
+        console.log('Cart addItem called with:', item);
+        set((state) => {
+          const newItem = {
             ...item,
             id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
             timestamp: new Date()
-          }
-        ]
-      })),
+          };
+          const newItems = [...state.items, newItem];
+          console.log('Cart updated. New items:', newItems);
+          return { items: newItems };
+        });
+      },
 
       removeItem: (itemId) => set((state) => ({
         items: state.items.filter(item => item.id !== itemId)

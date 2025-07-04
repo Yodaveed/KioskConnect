@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Users, ShoppingCart, Copy, Check } from 'lucide-react';
+import { Trash2, Users, ShoppingCart, Copy, Check, Send } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function EasyCart() {
   const [joinCartId, setJoinCartId] = useState('');
@@ -21,6 +23,39 @@ export default function EasyCart() {
     clearCart, 
     getCartTotal 
   } = useCart();
+
+  // Group cart submission mutation
+  const submitCartMutation = useMutation({
+    mutationFn: async () => {
+      const cartData = {
+        cartId,
+        items: items.map(item => ({
+          customerName: item.customerName,
+          menuType: item.menuType,
+          orderData: item.orderData,
+          totalPrice: item.totalPrice
+        })),
+        totalAmount: getCartTotal().toFixed(2)
+      };
+
+      const response = await apiRequest("POST", "/api/carts/submit", cartData);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Group Cart Submitted!",
+        description: `Order #${data.orderNumber} is being prepared for your group.`
+      });
+      clearCart(); // Clear cart after successful submission
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Submission Failed",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    }
+  });
 
   const generateFriendlyCartId = () => {
     const adjectives = ['Fresh', 'Sweet', 'Cool', 'Tasty', 'Happy', 'Quick', 'Sunny', 'Smooth'];
@@ -233,7 +268,27 @@ export default function EasyCart() {
 
       {/* Cart Actions */}
       <Card>
-        <CardContent className="pt-6 space-y-2">
+        <CardContent className="pt-6 space-y-3">
+          {items.length > 0 && (
+            <Button 
+              onClick={() => submitCartMutation.mutate()}
+              disabled={submitCartMutation.isPending}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
+            >
+              {submitCartMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit Group Cart (${getCartTotal().toFixed(2)})
+                </>
+              )}
+            </Button>
+          )}
+          
           <Button 
             onClick={() => {
               clearCart();

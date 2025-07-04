@@ -270,6 +270,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cart submission endpoint
+  app.post("/api/carts/submit", async (req, res) => {
+    try {
+      const { cartId, items, totalAmount } = req.body;
+      
+      if (!cartId || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "Invalid cart data" });
+      }
+
+      // Generate group order number
+      const orderNumber = storage.generateOrderNumber();
+      
+      // Create a single order for the entire group
+      const groupOrder = await storage.createOrder({
+        orderNumber,
+        customerName: `Group Cart: ${cartId}`,
+        totalAmount: totalAmount,
+        items: JSON.stringify({
+          cartId,
+          groupItems: items,
+          itemCount: items.length,
+          customers: Array.from(new Set(items.map(item => item.customerName)))
+        }),
+        status: 'pending'
+      });
+
+      res.json({
+        success: true,
+        orderNumber,
+        orderId: groupOrder.id,
+        cartId,
+        totalAmount,
+        itemCount: items.length
+      });
+    } catch (error) {
+      console.error('Cart submission error:', error);
+      res.status(500).json({ error: "Failed to submit cart" });
+    }
+  });
+
   // Sold-out endpoints
   app.put("/api/menu-items/:id/sold-out", async (req, res) => {
     try {

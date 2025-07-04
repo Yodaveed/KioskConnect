@@ -35,6 +35,14 @@ export default function OrderSummary() {
         const customerNameElement = document.querySelector('[data-customer-name]');
         const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
         
+        console.log('Adding to cart:', {
+          customerName,
+          menuType: getMenuTypeName(),
+          orderData: order,
+          totalPrice: totalPrice,
+          isActive
+        });
+        
         // Add item to cart
         addItem({
           customerName,
