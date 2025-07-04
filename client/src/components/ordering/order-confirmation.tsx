@@ -40,25 +40,31 @@ export default function OrderConfirmation() {
       
       // Get the order from localStorage (stored during order completion)
       const storedOrder = localStorage.getItem('currentOrder');
+      console.log('Raw stored order from localStorage:', storedOrder);
+      
       if (storedOrder) {
         try {
           const orderData = JSON.parse(storedOrder);
+          console.log('Parsed order data structure:', orderData);
           
           addItem({
             customerName,
             menuType: orderData.menuType || "Custom Order",
-            orderData,
-            totalPrice: orderData.total || 0
+            orderData: orderData.orderData || orderData, // Handle both formats
+            totalPrice: orderData.total || orderData.totalPrice || 0
           });
           
           console.log('Added completed order to new cart:', {
             customerName,
-            orderData,
-            cartId: newCartId
+            orderData: orderData.orderData || orderData,
+            cartId: newCartId,
+            totalPrice: orderData.total || orderData.totalPrice || 0
           });
         } catch (error) {
           console.error('Failed to parse order data:', error);
         }
+      } else {
+        console.log('No stored order found in localStorage');
       }
       
       toast({

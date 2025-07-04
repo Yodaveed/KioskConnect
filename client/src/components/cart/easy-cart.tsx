@@ -21,7 +21,8 @@ export default function EasyCart() {
     setCartId, 
     removeItem, 
     clearCart, 
-    getCartTotal 
+    getCartTotal,
+    addItem 
   } = useCart();
 
   // Group cart submission mutation
@@ -298,26 +299,7 @@ export default function EasyCart() {
             </Button>
           )}
           
-          {/* Debug test button */}
-          <Button 
-            onClick={() => {
-              addItem({
-                customerName: 'Test Customer',
-                menuType: 'Test Order',
-                orderData: { test: true },
-                totalPrice: 10.99
-              });
-              toast({
-                title: "Test Item Added",
-                description: "Added a test item to debug cart functionality"
-              });
-            }} 
-            variant="secondary" 
-            className="w-full"
-          >
-            🧪 Add Test Item (Debug)
-          </Button>
-          
+
           <Button 
             onClick={() => {
               clearCart();

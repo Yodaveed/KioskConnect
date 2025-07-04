@@ -57,8 +57,17 @@ export default function OrderSummary() {
         menuType: getMenuTypeName(),
         orderNumber: data.orderNumber,
         items: order,
-        total: totalPrice
+        total: totalPrice,
+        // Store in the same format as other flows
+        customerName: '', // Will be populated by order confirmation
+        orderData: {
+          base: order.base,
+          sauce: order.sauce,
+          toppings: order.toppings,
+          totalAmount: totalPrice.toFixed(2)
+        }
       };
+      console.log('3-step flow storing order data:', orderForStorage);
       localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
       
       setStep(5);
