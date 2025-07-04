@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function OrderConfirmation() {
   const { orderNumber, resetOrder } = useOrder();
-  const { cartId, isActive, setCartId } = useCart();
+  const { cartId, isActive, setCartId, addItem } = useCart();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -33,9 +33,37 @@ export default function OrderConfirmation() {
       // Create a new cart
       const newCartId = generateFriendlyCartId();
       setCartId(newCartId);
+      
+      // Add the current completed order to the cart
+      const customerNameElement = document.querySelector('[data-customer-name]');
+      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+      
+      // Get the order from localStorage (stored during order completion)
+      const storedOrder = localStorage.getItem('currentOrder');
+      if (storedOrder) {
+        try {
+          const orderData = JSON.parse(storedOrder);
+          
+          addItem({
+            customerName,
+            menuType: orderData.menuType || "Custom Order",
+            orderData,
+            totalPrice: orderData.total || 0
+          });
+          
+          console.log('Added completed order to new cart:', {
+            customerName,
+            orderData,
+            cartId: newCartId
+          });
+        } catch (error) {
+          console.error('Failed to parse order data:', error);
+        }
+      }
+      
       toast({
         title: "Group Cart Created!",
-        description: `Share "${newCartId}" with others to add their orders.`
+        description: `Your order has been added to cart "${newCartId}". Share this ID with your group.`
       });
     }
     // Go back to home to add another order

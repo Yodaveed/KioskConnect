@@ -52,6 +52,15 @@ export default function OrderSummary() {
         });
       }
       
+      // Store order data in localStorage for potential cart addition
+      const orderForStorage = {
+        menuType: getMenuTypeName(),
+        orderNumber: data.orderNumber,
+        items: order,
+        total: totalPrice
+      };
+      localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
+      
       setStep(5);
       toast({
         title: "Order placed successfully!",
