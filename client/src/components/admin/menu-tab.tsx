@@ -284,6 +284,9 @@ export default function MenuTab() {
                         <Input placeholder="Enter image URL (optional)" {...field} />
                       </FormControl>
                       <FormMessage />
+                      <div className="text-sm text-gray-500 mt-1">
+                        Leave blank to show default icon instead of image
+                      </div>
                     </FormItem>
                   )}
                 />

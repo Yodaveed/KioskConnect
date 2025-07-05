@@ -69,12 +69,19 @@ export default function StepOne() {
             }`}
             onClick={() => handleSelectBase(item)}
           >
-            {item.imageUrl && (
+            {item.imageUrl ? (
               <img
                 src={item.imageUrl}
                 alt={item.name}
                 className="w-full h-48 object-cover rounded-t-lg"
               />
+            ) : (
+              <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-primary/20 rounded-t-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-6xl mb-2">🍝</div>
+                  <div className="text-sm text-gray-600">No image</div>
+                </div>
+              </div>
             )}
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-3">

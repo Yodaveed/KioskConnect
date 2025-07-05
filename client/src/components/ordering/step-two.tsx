@@ -70,7 +70,7 @@ export default function StepTwo() {
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-dark-slate mb-2">Choose Your Sauce</h2>
-        <p className="text-gray-600 text-lg">Select one delicious sauce to complement your base</p>
+        <p className="text-gray-600 text-lg">Select a delicious sauce to complement your base, or skip to continue</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -85,9 +85,17 @@ export default function StepTwo() {
             onClick={() => handleSelectSauce(item)}
           >
             <CardContent className="p-6 text-center">
-              <div className={`w-16 h-16 ${getSauceBackgroundColor(item.name)} rounded-full mx-auto mb-4 flex items-center justify-center`}>
-                <Droplet className={`text-2xl ${getSauceIconColor(item.name)}`} />
-              </div>
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+                />
+              ) : (
+                <div className={`w-16 h-16 ${getSauceBackgroundColor(item.name)} rounded-full mx-auto mb-4 flex items-center justify-center`}>
+                  <Droplet className={`text-2xl ${getSauceIconColor(item.name)}`} />
+                </div>
+              )}
               <h3 className="text-lg font-semibold text-dark-slate mb-2">{item.name}</h3>
               <p className="text-gray-600 text-sm mb-4">{item.description}</p>
               <div className="text-primary font-bold text-lg mb-4">+${item.price}</div>
@@ -118,14 +126,22 @@ export default function StepTwo() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Base
         </Button>
-        <Button
-          onClick={handleContinue}
-          disabled={!order.sauce}
-          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-        >
-          Continue to Toppings
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
+        <div className="flex gap-4">
+          <Button
+            onClick={handleContinue}
+            variant="outline"
+            className="px-8 py-3 rounded-full font-medium"
+          >
+            Skip Sauce
+          </Button>
+          <Button
+            onClick={handleContinue}
+            className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+          >
+            Continue to Toppings
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </div>
   );

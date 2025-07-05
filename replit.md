@@ -118,6 +118,9 @@ Changelog:
 - July 03, 2025. Created sold-out item management system for admin dashboard
 - July 03, 2025. Simplified cart system with post-order cart creation via "Add to This Order" button
 - July 03, 2025. Enhanced order confirmation with intuitive cart creation flow and friendly cart IDs
+- July 04, 2025. Added image support for menu items with fallback icons when no image is provided
+- July 04, 2025. Made sauce and toppings optional in 3-step ordering flows (Spaghetti, Burger, Soup)
+- July 04, 2025. Updated database schema to support imageUrl field for menu items
 ```
 
 ## User Preferences

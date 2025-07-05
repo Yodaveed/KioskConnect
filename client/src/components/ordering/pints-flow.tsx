@@ -137,6 +137,17 @@ export default function PintsFlow() {
           
           return (
             <Card key={pint.id} className="relative">
+              {pint.imageUrl ? (
+                <img
+                  src={pint.imageUrl}
+                  alt={pint.name}
+                  className="w-full h-32 object-cover rounded-t-lg"
+                />
+              ) : (
+                <div className="w-full h-32 bg-gradient-to-br from-primary/10 to-primary/20 rounded-t-lg flex items-center justify-center">
+                  <div className="text-4xl">🍨</div>
+                </div>
+              )}
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">{pint.name}</CardTitle>
                 {pint.description && (
