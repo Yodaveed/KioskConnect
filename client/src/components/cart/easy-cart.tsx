@@ -8,11 +8,13 @@ import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 export default function EasyCart() {
   const [joinCartId, setJoinCartId] = useState('');
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   const { 
     cartId, 
@@ -105,6 +107,15 @@ export default function EasyCart() {
         });
       }
     }
+  };
+
+  const handleAddToThisOrder = () => {
+    // Go back to home to add another order to the existing cart
+    setLocation('/');
+    toast({
+      title: "Add Another Order",
+      description: `Continue ordering - items will be added to cart "${cartId}"`
+    });
   };
 
   const customers = Array.from(new Set(items.map(item => item.customerName)));
@@ -280,25 +291,35 @@ export default function EasyCart() {
       <Card>
         <CardContent className="pt-6 space-y-3">
           {items.length > 0 && (
-            <Button 
-              onClick={() => submitCartMutation.mutate()}
-              disabled={submitCartMutation.isPending}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
-            >
-              {submitCartMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Submit Group Cart (${getCartTotal().toFixed(2)})
-                </>
-              )}
-            </Button>
+            <>
+              <Button 
+                onClick={() => submitCartMutation.mutate()}
+                disabled={submitCartMutation.isPending}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
+              >
+                {submitCartMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit Cart (${getCartTotal().toFixed(2)})
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={handleAddToThisOrder}
+                variant="outline"
+                className="w-full"
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to This Order
+              </Button>
+            </>
           )}
-          
 
           <Button 
             onClick={() => {

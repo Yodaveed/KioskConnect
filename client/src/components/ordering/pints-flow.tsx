@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, ShoppingCart } from "lucide-react";
+import { Plus, Minus, ShoppingCart, Check } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import type { MenuItem } from "@shared/schema";
 
 interface PintSelection {
@@ -15,7 +17,9 @@ interface PintSelection {
 
 export default function PintsFlow() {
   const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
-  const { isActive, addItem } = useCart();
+  const { isActive, addItem, setCartId } = useCart();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selections, setSelections] = useState<PintSelection>({});
 
   const { data: pints = [], isLoading } = useQuery({
@@ -54,11 +58,8 @@ export default function PintsFlow() {
     }, 0);
   };
 
-  const handleComplete = () => {
-    const orderNumber = `PT${Date.now().toString().slice(-6)}`;
-    setOrderNumber(orderNumber);
-    
-    const customOrder = {
+  const createOrderData = () => {
+    return {
       menuType: "pints",
       items: Object.entries(selections).map(([pintId, qty]) => {
         const pint = (pints as MenuItem[]).find(p => p.id === Number(pintId));
@@ -70,14 +71,19 @@ export default function PintsFlow() {
       }),
       total: getTotalPrice()
     };
+  };
+
+  const handleSubmitOrder = () => {
+    const orderNumber = `PT${Date.now().toString().slice(-6)}`;
+    setOrderNumber(orderNumber);
+    
+    const customOrder = createOrderData();
     
     // Add to cart if cart is active
     if (isActive) {
-      // Get customer name from the DOM element set by OrderWrapper
       const customerNameElement = document.querySelector('[data-customer-name]');
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
-      // Add item to cart
       addItem({
         customerName,
         menuType: "Pints",
@@ -88,6 +94,44 @@ export default function PintsFlow() {
     
     localStorage.setItem('currentOrder', JSON.stringify(customOrder));
     setStep(4); // Go to confirmation
+  };
+
+  const handleAddToOrder = () => {
+    const customOrder = createOrderData();
+    
+    if (!isActive) {
+      // Create a new cart
+      const generateFriendlyCartId = () => {
+        const adjectives = ['Fresh', 'Sweet', 'Cool', 'Tasty', 'Happy', 'Quick', 'Sunny', 'Smooth'];
+        const nouns = ['Ice', 'Cream', 'Treat', 'Order', 'Cart', 'Table', 'Group', 'Party'];
+        const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+        const randomNum = Math.floor(Math.random() * 999) + 1;
+        return `${randomAdj}${randomNoun}${randomNum}`;
+      };
+      
+      const newCartId = generateFriendlyCartId();
+      setCartId(newCartId);
+      
+      const customerNameElement = document.querySelector('[data-customer-name]');
+      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+      
+      addItem({
+        customerName,
+        menuType: "Pints",
+        orderData: customOrder,
+        totalPrice: getTotalPrice()
+      });
+      
+      toast({
+        title: "Group Cart Created!",
+        description: `Your order has been added to cart "${newCartId}". Share this ID with your group.`
+      });
+    }
+    
+    // Reset order and go back to home
+    resetOrder();
+    setLocation('/');
   };
 
   if (isLoading) {
@@ -227,13 +271,22 @@ export default function PintsFlow() {
               </div>
             </div>
             
-            <Button 
-              className="w-full mt-6 bg-primary hover:bg-primary/90"
-              onClick={handleComplete}
-            >
-              Complete Order
-              <ShoppingCart className="ml-2 h-4 w-4" />
-            </Button>
+            <div className="mt-6 space-y-3">
+              <Button 
+                className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg transform hover:scale-105 transition-all"
+                onClick={handleSubmitOrder}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Submit Order
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={handleAddToOrder}
+              >
+                Add to This Order
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

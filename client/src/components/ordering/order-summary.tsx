@@ -3,14 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
+import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OrderSummary() {
-  const { order, totalPrice, setStep, setOrderNumber, selectedMenuId } = useOrder();
-  const { isActive, addItem } = useCart();
+  const { order, totalPrice, setStep, setOrderNumber, selectedMenuId, resetOrder } = useOrder();
+  const { isActive, addItem, setCartId } = useCart();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
@@ -101,6 +103,48 @@ export default function OrderSummary() {
     placeOrderMutation.mutate();
   };
 
+  const handleAddToOrder = () => {
+    if (!isActive) {
+      // Create a new cart
+      const generateFriendlyCartId = () => {
+        const adjectives = ['Fresh', 'Sweet', 'Cool', 'Tasty', 'Happy', 'Quick', 'Sunny', 'Smooth'];
+        const nouns = ['Ice', 'Cream', 'Treat', 'Order', 'Cart', 'Table', 'Group', 'Party'];
+        const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+        const randomNum = Math.floor(Math.random() * 999) + 1;
+        return `${randomAdj}${randomNoun}${randomNum}`;
+      };
+      
+      const newCartId = generateFriendlyCartId();
+      setCartId(newCartId);
+      
+      // Add the current order to the cart
+      const customerNameElement = document.querySelector('[data-customer-name]');
+      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+      
+      addItem({
+        customerName,
+        menuType: getMenuTypeName(),
+        orderData: {
+          base: order.base,
+          sauce: order.sauce,
+          toppings: order.toppings,
+          totalAmount: totalPrice.toFixed(2)
+        },
+        totalPrice: totalPrice
+      });
+      
+      toast({
+        title: "Group Cart Created!",
+        description: `Your order has been added to cart "${newCartId}". Share this ID with your group.`
+      });
+    }
+    
+    // Reset order and go back to home
+    resetOrder();
+    setLocation('/');
+  };
+
   const getBasePrice = () => {
     if (!order.base) return 0;
     let price = order.base.price;
@@ -178,31 +222,41 @@ export default function OrderSummary() {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-8 flex space-x-4">
+          <div className="mt-8 flex flex-col space-y-4">
+            <div className="flex space-x-4">
+              <Button
+                onClick={handlePlaceOrder}
+                disabled={placeOrderMutation.isPending}
+                className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {placeOrderMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Submit Order
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={handleAddToOrder}
+                disabled={placeOrderMutation.isPending}
+                variant="outline"
+                className="flex-1 py-4 rounded-full font-semibold"
+              >
+                Add to This Order
+              </Button>
+            </div>
             <Button
               onClick={() => setStep(3)}
               variant="outline"
-              className="flex-1 py-4 rounded-full font-semibold"
+              className="w-full py-3 rounded-full font-medium"
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit Order
-            </Button>
-            <Button
-              onClick={handlePlaceOrder}
-              disabled={placeOrderMutation.isPending}
-              className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {placeOrderMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Placing Order...
-                </>
-              ) : (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Place Order
-                </>
-              )}
             </Button>
           </div>
         </CardContent>

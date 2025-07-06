@@ -121,6 +121,9 @@ Changelog:
 - July 04, 2025. Added image support for menu items with fallback icons when no image is provided
 - July 04, 2025. Made sauce and toppings optional in 3-step ordering flows (Spaghetti, Burger, Soup)
 - July 04, 2025. Updated database schema to support imageUrl field for menu items
+- July 04, 2025. Implemented dual submission flow: "Submit Order" (immediate) vs "Add to This Order" (cart creation)
+- July 04, 2025. Enhanced cart interface with "Submit Cart" and "Add to This Order" options for group ordering
+- July 04, 2025. Updated all ordering flows (3-step, Pints, Freeze Sticks) to support new submission options
 ```
 
 ## User Preferences
