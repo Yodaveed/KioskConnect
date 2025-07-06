@@ -23,9 +23,8 @@ export default function StepTwo() {
   };
 
   const handleContinue = () => {
-    if (order.sauce) {
-      setStep(3);
-    }
+    // Allow continuing even without sauce selection
+    setStep(3);
   };
 
   const getSauceIconColor = (sauceName: string) => {

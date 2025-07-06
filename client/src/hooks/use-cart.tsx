@@ -35,7 +35,6 @@ export const useCart = create<CartState>()(
       setCartId: (cartId: string) => set({ cartId, isActive: true }),
 
       addItem: (item) => {
-        console.log('Cart addItem called with:', item);
         set((state) => {
           const newItem = {
             ...item,
@@ -43,7 +42,6 @@ export const useCart = create<CartState>()(
             timestamp: new Date()
           };
           const newItems = [...state.items, newItem];
-          console.log('Cart updated. New items:', newItems);
           return { items: newItems };
         });
       },

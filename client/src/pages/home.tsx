@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { IceCream, Settings, ArrowRight, ShoppingCart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useOrder } from "@/hooks/use-order";
 import StepOne from "@/components/ordering/step-one";
 import StepTwo from "@/components/ordering/step-two";
@@ -219,6 +219,9 @@ export default function Home() {
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle>Group Cart</DialogTitle>
+                      <DialogDescription>
+                        Manage your group orders and share your cart with others
+                      </DialogDescription>
                     </DialogHeader>
                     <EasyCart />
                   </DialogContent>

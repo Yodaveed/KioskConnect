@@ -104,13 +104,6 @@ export default function OrderSummary() {
   };
 
   const handleAddToOrder = () => {
-    console.log('3-step handleAddToOrder called:', {
-      isActive,
-      order,
-      totalPrice,
-      selectedMenuId
-    });
-
     if (!isActive) {
       // Create a new cart
       const generateFriendlyCartId = () => {
@@ -123,7 +116,6 @@ export default function OrderSummary() {
       };
       
       const newCartId = generateFriendlyCartId();
-      console.log('Creating new cart with ID:', newCartId);
       setCartId(newCartId);
       
       // Add the current order to the cart
@@ -136,13 +128,6 @@ export default function OrderSummary() {
         toppings: order.toppings,
         totalAmount: totalPrice.toFixed(2)
       };
-
-      console.log('Adding order to cart:', {
-        customerName,
-        menuType: getMenuTypeName(),
-        orderDataForCart,
-        totalPrice
-      });
       
       addItem({
         customerName,
@@ -158,7 +143,6 @@ export default function OrderSummary() {
     }
     
     // Reset order and go back to home
-    console.log('Resetting order and navigating to home');
     resetOrder();
     setLocation('/');
   };

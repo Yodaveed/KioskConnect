@@ -119,15 +119,6 @@ export default function EasyCart() {
   };
 
   const customers = Array.from(new Set(items.map(item => item.customerName)));
-  
-  // Debug logging
-  console.log('EasyCart Debug:', {
-    cartId,
-    isActive,
-    itemsCount: items.length,
-    items,
-    customers
-  });
 
   if (!isActive) {
     return (
