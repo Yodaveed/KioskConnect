@@ -126,22 +126,13 @@ export default function StepTwo() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Base
         </Button>
-        <div className="flex gap-4">
-          <Button
-            onClick={handleContinue}
-            variant="outline"
-            className="px-8 py-3 rounded-full font-medium"
-          >
-            Skip Sauce
-          </Button>
-          <Button
-            onClick={handleContinue}
-            className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
-          >
-            Continue to Toppings
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
+        <Button
+          onClick={handleContinue}
+          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+        >
+          Continue to Toppings
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
       </div>
     </div>
   );
