@@ -159,12 +159,25 @@ export default function FreezeSticksFlow() {
   };
 
   const canProceed = () => {
-    const maxSticks = getMaxSticks();
-    const totalSticks = getTotalSticks();
+    const baseSticks = Object.values(selection.flavorQuantities).reduce((sum, qty) => sum + qty, 0);
+    const baseMaxSticks = selection.size?.maxQuantity || 0;
+    const hasBaseSelection = baseSticks > 0 && baseSticks <= baseMaxSticks;
+    
+    // Check additional sticks have flavors selected if any additional sticks exist
+    const additionalSticks = selection.additionalSticks;
+    const additionalFlavorTotal = Object.values(selection.additionalFlavorQuantities).reduce((sum, qty) => sum + qty, 0);
+    const hasValidAdditionalSticks = additionalSticks === 0 || additionalSticks === additionalFlavorTotal;
+    
+    // Check additional sauces are selected if any additional sauces exist
+    const additionalSauces = selection.additionalSauces;
+    const additionalSauceCount = selection.additionalSauceSelections.filter(s => s).length;
+    const hasValidAdditionalSauces = additionalSauces === 0 || additionalSauces === additionalSauceCount;
+    
     return selection.size && 
-           totalSticks > 0 && 
-           totalSticks <= maxSticks && 
-           selection.sauce;
+           hasBaseSelection && 
+           selection.sauce &&
+           hasValidAdditionalSticks &&
+           hasValidAdditionalSauces;
   };
 
   const handleComplete = () => {
@@ -225,8 +238,15 @@ export default function FreezeSticksFlow() {
       });
     }
     
-    // Store in localStorage for now (you can save to backend later)
-    localStorage.setItem('currentOrder', JSON.stringify(customOrder));
+    // Store in localStorage with consistent structure for order confirmation
+    const orderForStorage = {
+      menuType: "Freeze Sticks",
+      orderNumber: orderNumber,
+      orderData: customOrder,
+      totalPrice: calculateTotal(),
+      total: calculateTotal()
+    };
+    localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
     
     setStep(4); // Go to confirmation
   };

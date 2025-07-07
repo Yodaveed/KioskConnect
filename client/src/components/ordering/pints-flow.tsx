@@ -28,13 +28,8 @@ export default function PintsFlow() {
     enabled: !!selectedMenuId, // Only run query when we have a menu ID
   });
 
-  // Debug logging
-  console.log('PintsFlow Debug:', {
-    selectedMenuId,
-    isLoading,
-    pintsLength: pints.length,
-    pints
-  });
+  // Component state tracking
+  const pintsCount = Object.values(selectedPints).reduce((sum, qty) => sum + qty, 0);
 
   const handleQuantityChange = (pintId: number, delta: number) => {
     setSelections(prev => {
@@ -92,7 +87,15 @@ export default function PintsFlow() {
       });
     }
     
-    localStorage.setItem('currentOrder', JSON.stringify(customOrder));
+    // Store in localStorage with consistent structure for order confirmation
+    const orderForStorage = {
+      menuType: "Pints",
+      orderNumber: orderNumber,
+      orderData: customOrder,
+      totalPrice: getTotalPrice(),
+      total: getTotalPrice()
+    };
+    localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
     setStep(4); // Go to confirmation
   };
 

@@ -37,13 +37,7 @@ export default function OrderSummary() {
         const customerNameElement = document.querySelector('[data-customer-name]');
         const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
         
-        console.log('Adding to cart:', {
-          customerName,
-          menuType: getMenuTypeName(),
-          orderData: order,
-          totalPrice: totalPrice,
-          isActive
-        });
+
         
         // Add item to cart
         addItem({
@@ -69,7 +63,7 @@ export default function OrderSummary() {
           totalAmount: totalPrice.toFixed(2)
         }
       };
-      console.log('3-step flow storing order data:', orderForStorage);
+
       localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
       
       setStep(5);
