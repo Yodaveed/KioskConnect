@@ -179,7 +179,7 @@ export default function Home() {
         case 3:
           return <StepThree />;
         case 4:
-          return <OrderConfirmation />;
+          return <OrderSummary />;
         case 5:
           return <PintsFlow />; // Single page flow
         case 6:

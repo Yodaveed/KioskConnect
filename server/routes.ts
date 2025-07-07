@@ -220,6 +220,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cart submission endpoint
+  app.post("/api/carts/submit", async (req, res) => {
+    try {
+      const { items, totalAmount } = req.body;
+      
+      // Create individual orders for each item in the cart
+      const orderNumber = storage.generateOrderNumber();
+      const orderPromises = items.map(async (item: any) => {
+        const orderData = {
+          customerName: item.customerName,
+          totalAmount: item.totalPrice.toString(),
+          items: item.orderData,
+          orderNumber: orderNumber
+        };
+        
+        return await storage.createOrder(orderData);
+      });
+      
+      const orders = await Promise.all(orderPromises);
+      
+      res.json({
+        success: true,
+        orderNumber,
+        orders: orders.length,
+        totalAmount
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit cart" });
+    }
+  });
+
   // Cart endpoints
   app.post("/api/carts", async (req, res) => {
     try {

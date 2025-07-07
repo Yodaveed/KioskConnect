@@ -1,4 +1,4 @@
-import { Edit, Check } from "lucide-react";
+import { Edit, Check, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrder } from "@/hooks/use-order";
@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function OrderSummary() {
   const { order, totalPrice, setStep, setOrderNumber, selectedMenuId, resetOrder } = useOrder();
-  const { isActive, addItem, setCartId } = useCart();
+  const { isActive, addItem, setCartId, items, clearCart, getCartTotal } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -118,7 +118,7 @@ export default function OrderSummary() {
       const newCartId = generateFriendlyCartId();
       setCartId(newCartId);
       
-      // Add the current order to the cart
+      // Add the current order to the cart - get customer name from OrderWrapper
       const customerNameElement = document.querySelector('[data-customer-name]');
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
@@ -145,6 +145,38 @@ export default function OrderSummary() {
     // Reset order and go back to home
     resetOrder();
     setLocation('/');
+  };
+
+  const handleSubmitCart = async () => {
+    try {
+      const cartData = {
+        items: items.map(item => ({
+          customerName: item.customerName,
+          menuType: item.menuType,
+          orderData: item.orderData,
+          totalPrice: item.totalPrice
+        })),
+        totalAmount: getCartTotal().toFixed(2)
+      };
+
+      const response = await apiRequest("POST", "/api/carts/submit", cartData);
+      const data = await response.json();
+      
+      toast({
+        title: "Group Cart Submitted!",
+        description: `Order #${data.orderNumber} is being prepared for your group.`
+      });
+      
+      clearCart();
+      resetOrder();
+      setLocation('/order-confirmation');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit cart. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getBasePrice = () => {
@@ -226,31 +258,64 @@ export default function OrderSummary() {
           {/* Action Buttons */}
           <div className="mt-8 flex flex-col space-y-4">
             <div className="flex space-x-4">
-              <Button
-                onClick={handlePlaceOrder}
-                disabled={placeOrderMutation.isPending}
-                className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {placeOrderMutation.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Submit Order
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleAddToOrder}
-                disabled={placeOrderMutation.isPending}
-                variant="outline"
-                className="flex-1 py-4 rounded-full font-semibold"
-              >
-                Add to This Order
-              </Button>
+              {/* Show different buttons based on cart state */}
+              {!isActive ? (
+                <>
+                  <Button
+                    onClick={handlePlaceOrder}
+                    disabled={placeOrderMutation.isPending}
+                    className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {placeOrderMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Submit Order
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleAddToOrder}
+                    disabled={placeOrderMutation.isPending}
+                    variant="outline"
+                    className="flex-1 py-4 rounded-full font-semibold"
+                  >
+                    Add to This Order
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleSubmitCart}
+                    disabled={placeOrderMutation.isPending}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {placeOrderMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Submit Cart
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleAddToOrder}
+                    disabled={placeOrderMutation.isPending}
+                    variant="outline"
+                    className="flex-1 py-4 rounded-full font-semibold"
+                  >
+                    Add to This Order
+                  </Button>
+                </>
+              )}
             </div>
             <Button
               onClick={() => setStep(3)}
