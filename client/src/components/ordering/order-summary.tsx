@@ -1,6 +1,8 @@
-import { Edit, Check, Send } from "lucide-react";
+import { Edit, Check, Send, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
@@ -14,6 +16,15 @@ export default function OrderSummary() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  const getMenuTypeName = () => {
+    switch(selectedMenuId) {
+      case 6: return "Spaghetti";
+      case 7: return "Burger";
+      case 8: return "Soup";
+      default: return "Ice Cream";
+    }
+  };
+
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
       const orderData = {
@@ -25,8 +36,8 @@ export default function OrderSummary() {
         },
       };
 
-      const response = await apiRequest("POST", "/api/orders", orderData);
-      return response.json();
+      const response = await apiRequest("/api/orders", "POST", orderData);
+      return response;
     },
     onSuccess: (data) => {
       setOrderNumber(data.orderNumber);
@@ -36,8 +47,6 @@ export default function OrderSummary() {
         // Get customer name from the DOM element set by OrderWrapper
         const customerNameElement = document.querySelector('[data-customer-name]');
         const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-        
-
         
         // Add item to cart
         addItem({
@@ -52,49 +61,71 @@ export default function OrderSummary() {
       const orderForStorage = {
         menuType: getMenuTypeName(),
         orderNumber: data.orderNumber,
-        items: order,
-        total: totalPrice,
-        // Store in the same format as other flows
-        customerName: '', // Will be populated by order confirmation
         orderData: {
           base: order.base,
           sauce: order.sauce,
           toppings: order.toppings,
           totalAmount: totalPrice.toFixed(2)
-        }
+        },
+        totalPrice: totalPrice,
+        total: totalPrice
       };
-
+      
       localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
       
       setStep(5);
       toast({
-        title: "Order placed successfully!",
-        description: `Order #${data.orderNumber} is being prepared`,
+        title: "Order Placed!",
+        description: `Your order #${data.orderNumber} has been confirmed.`
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Failed to place order",
-        description: error.message || "Please try again",
-        variant: "destructive",
+        title: "Order Failed",
+        description: "There was an error placing your order. Please try again.",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const getMenuTypeName = () => {
-    // Get menu type name based on selectedMenuId
-    const menuNames = {
-      6: "Spaghetti",
-      7: "Burger", 
-      8: "Soup",
-      9: "Pints",
-      10: "Freeze Sticks"
-    };
-    return menuNames[selectedMenuId as keyof typeof menuNames] || "Custom Order";
-  };
+  const handleSubmitCart = async () => {
+    if (!isActive || items.length === 0) {
+      toast({
+        title: "Cart is Empty",
+        description: "Please add items to your cart before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handlePlaceOrder = () => {
-    placeOrderMutation.mutate();
+    try {
+      // Submit all cart items as individual orders
+      for (const item of items) {
+        const orderData = {
+          totalAmount: item.totalPrice.toFixed(2),
+          items: item.orderData,
+          customerName: item.customerName,
+          menuType: item.menuType
+        };
+        
+        await apiRequest("/api/orders", "POST", orderData);
+      }
+      
+      toast({
+        title: "Cart Submitted!",
+        description: `Successfully submitted ${items.length} orders totaling $${getCartTotal().toFixed(2)}`
+      });
+      
+      clearCart();
+      resetOrder();
+      setLocation('/');
+    } catch (error) {
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your cart. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddToOrder = () => {
@@ -141,187 +172,135 @@ export default function OrderSummary() {
     setLocation('/');
   };
 
-  const handleSubmitCart = async () => {
-    try {
-      const cartData = {
-        items: items.map(item => ({
-          customerName: item.customerName,
-          menuType: item.menuType,
-          orderData: item.orderData,
-          totalPrice: item.totalPrice
-        })),
-        totalAmount: getCartTotal().toFixed(2)
-      };
-
-      const response = await apiRequest("POST", "/api/carts/submit", cartData);
-      const data = await response.json();
-      
-      toast({
-        title: "Group Cart Submitted!",
-        description: `Order #${data.orderNumber} is being prepared for your group.`
-      });
-      
-      clearCart();
-      resetOrder();
-      setLocation('/order-confirmation');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit cart. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getBasePrice = () => {
-    if (!order.base) return 0;
-    let price = order.base.price;
-    if (order.base.modifiers) {
-      price += order.base.modifiers.reduce((sum, mod) => sum + mod.price, 0);
-    }
-    return price;
-  };
-
-  const getBaseDescription = () => {
-    if (!order.base) return "";
-    const modifiers = order.base.modifiers?.map(mod => mod.name).join(", ");
-    return modifiers ? `With ${modifiers}` : "";
-  };
-
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-dark-slate mb-2">Order Summary</h2>
-        <p className="text-gray-600 text-lg">Review your delicious creation before placing your order</p>
+        <p className="text-gray-600 text-lg">Review your order before placing it</p>
       </div>
 
-      <Card className="shadow-lg">
-        <CardContent className="p-8">
-          <div className="space-y-6">
-            {/* Base */}
-            {order.base && (
-              <div className="flex justify-between items-center pb-4 border-b">
-                <div>
-                  <h3 className="text-lg font-semibold text-dark-slate">{order.base.name} Base</h3>
-                  {getBaseDescription() && (
-                    <p className="text-gray-600">{getBaseDescription()}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-primary">${getBasePrice().toFixed(2)}</div>
-                </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-xl">Your {getMenuTypeName()} Order</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Base Selection */}
+          {order.base && (
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-semibold">{order.base.name}</h4>
+                <p className="text-sm text-gray-600">Base</p>
               </div>
-            )}
-
-            {/* Sauce */}
-            {order.sauce && (
-              <div className="flex justify-between items-center pb-4 border-b">
-                <div>
-                  <h3 className="text-lg font-semibold text-dark-slate">{order.sauce.name}</h3>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-primary">${order.sauce.price.toFixed(2)}</div>
-                </div>
+              <div className="text-right">
+                <div className="font-bold">${order.base.price.toFixed(2)}</div>
+                {order.base.modifiers && order.base.modifiers.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    {order.base.modifiers.map(mod => `+${mod.name}`).join(', ')}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Toppings */}
-            {order.toppings.length > 0 && (
-              <div className="pb-4 border-b">
-                <h3 className="text-lg font-semibold text-dark-slate mb-3">Toppings</h3>
-                <div className="space-y-2">
-                  {order.toppings.map((topping) => (
-                    <div key={topping.id} className="flex justify-between">
-                      <span className="text-gray-600">• {topping.name}</span>
-                      <span className={topping.price > 0 ? "text-primary font-semibold" : "text-gray-600"}>
-                        {topping.price > 0 ? `+$${topping.price.toFixed(2)}` : "Included"}
-                      </span>
+          {/* Sauce Selection */}
+          {order.sauce && (
+            <>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <div>
+                  <h4 className="font-semibold">{order.sauce.name}</h4>
+                  <p className="text-sm text-gray-600">Sauce</p>
+                </div>
+                <div className="font-bold">+${order.sauce.price.toFixed(2)}</div>
+              </div>
+            </>
+          )}
+
+          {/* Toppings */}
+          {order.toppings.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="font-semibold mb-2">Toppings</h4>
+                {order.toppings.map((topping, index) => (
+                  <div key={index} className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2">
+                      <span>{topping.name}</span>
+                      {topping.price > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          Premium
+                        </Badge>
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <div className="font-medium">
+                      {topping.price > 0 ? `+$${topping.price.toFixed(2)}` : "Included"}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </>
+          )}
 
-            {/* Total */}
-            <div className="flex justify-between items-center text-2xl font-bold">
-              <span className="text-dark-slate">Total</span>
-              <span className="text-primary">${totalPrice.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex flex-col space-y-4">
-            <div className="flex space-x-4">
-              {/* Show different buttons based on cart state */}
-              {!isActive ? (
-                <>
-                  <Button
-                    onClick={handlePlaceOrder}
-                    disabled={placeOrderMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    {placeOrderMutation.isPending ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Submit Order
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleAddToOrder}
-                    disabled={placeOrderMutation.isPending}
-                    variant="outline"
-                    className="flex-1 py-4 rounded-full font-semibold"
-                  >
-                    Add to This Order
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={handleSubmitCart}
-                    disabled={placeOrderMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    {placeOrderMutation.isPending ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Submit Cart
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleAddToOrder}
-                    disabled={placeOrderMutation.isPending}
-                    variant="outline"
-                    className="flex-1 py-4 rounded-full font-semibold"
-                  >
-                    Add to This Order
-                  </Button>
-                </>
-              )}
-            </div>
-            <Button
-              onClick={() => setStep(3)}
-              variant="outline"
-              className="w-full py-3 rounded-full font-medium"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Order
-            </Button>
+          <Separator />
+          
+          {/* Total */}
+          <div className="flex justify-between items-center text-xl font-bold">
+            <span>Total</span>
+            <span>${totalPrice.toFixed(2)}</span>
           </div>
         </CardContent>
       </Card>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-4 justify-between">
+          <Button
+            onClick={() => setStep(3)}
+            variant="outline"
+            className="flex-1"
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Order
+          </Button>
+          
+          {isActive && (
+            <Button
+              onClick={handleSubmitCart}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Submit Cart (${getCartTotal().toFixed(2)})
+            </Button>
+          )}
+        </div>
+
+        <div className="flex gap-4">
+          {!isActive && (
+            <Button
+              onClick={handleAddToOrder}
+              variant="outline"
+              className="flex-1"
+            >
+              Start Group Order
+            </Button>
+          )}
+          
+          <Button
+            onClick={() => placeOrderMutation.mutate()}
+            disabled={placeOrderMutation.isPending}
+            className="flex-1 bg-gradient-to-r from-primary to-secondary text-white"
+          >
+            {placeOrderMutation.isPending ? (
+              "Placing Order..."
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                {isActive ? "Add to This Order" : "Place Order"}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

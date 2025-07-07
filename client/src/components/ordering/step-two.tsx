@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Droplet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useOrder } from "@/hooks/use-order";
 import type { MenuItem } from "@shared/schema";
 
@@ -23,38 +24,14 @@ export default function StepTwo() {
   };
 
   const handleContinue = () => {
-    // Allow continuing even without sauce selection
+    // Allow continuing even without sauce selection (optional)
     setStep(3);
   };
 
-  const getSauceIconColor = (sauceName: string) => {
-    switch (sauceName.toLowerCase()) {
-      case "white chocolate":
-        return "text-yellow-600";
-      case "strawberry puree":
-        return "text-pink-600";
-      case "salted caramel":
-        return "text-amber-600";
-      case "hot fudge":
-        return "text-amber-100";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  const getSauceBackgroundColor = (sauceName: string) => {
-    switch (sauceName.toLowerCase()) {
-      case "white chocolate":
-        return "bg-gradient-to-br from-yellow-100 to-yellow-200";
-      case "strawberry puree":
-        return "bg-gradient-to-br from-pink-100 to-pink-200";
-      case "salted caramel":
-        return "bg-gradient-to-br from-amber-100 to-amber-200";
-      case "hot fudge":
-        return "bg-gradient-to-br from-amber-700 to-amber-800";
-      default:
-        return "bg-gradient-to-br from-gray-100 to-gray-200";
-    }
+  const handleSkip = () => {
+    // Clear sauce selection and continue
+    selectSauce(null);
+    setStep(3);
   };
 
   if (isLoading) {
@@ -72,13 +49,13 @@ export default function StepTwo() {
         <p className="text-gray-600 text-lg">Select a delicious sauce to complement your base, or skip to continue</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sauceItems.map((item: MenuItem) => (
           <Card
             key={item.id}
             className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
               order.sauce?.id === item.id
-                ? "border-2 border-primary shadow-lg"
+                ? "border-2 border-primary shadow-lg bg-primary/5"
                 : "border-2 border-transparent hover:border-primary"
             }`}
             onClick={() => handleSelectSauce(item)}
@@ -91,26 +68,30 @@ export default function StepTwo() {
                   className="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
                 />
               ) : (
-                <div className={`w-16 h-16 ${getSauceBackgroundColor(item.name)} rounded-full mx-auto mb-4 flex items-center justify-center`}>
-                  <Droplet className={`text-2xl ${getSauceIconColor(item.name)}`} />
+                <div className="w-16 h-16 bg-gradient-to-br from-secondary/10 to-secondary/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <Droplet className="text-2xl text-secondary" />
                 </div>
               )}
+              
               <h3 className="text-lg font-semibold text-dark-slate mb-2">{item.name}</h3>
               <p className="text-gray-600 text-sm mb-4">{item.description}</p>
-              <div className="text-primary font-bold text-lg mb-4">+${item.price}</div>
-              <Button
-                className={`w-full px-4 py-2 rounded-full font-medium transition-colors ${
-                  order.sauce?.id === item.id
-                    ? "bg-secondary text-white hover:bg-secondary/90"
-                    : "bg-primary text-white hover:bg-primary/90"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectSauce(item);
-                }}
-              >
-                {order.sauce?.id === item.id ? "✓ Selected" : "Select"}
-              </Button>
+              
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="text-primary font-bold text-lg">+${parseFloat(item.price).toFixed(2)}</div>
+                {item.isPremium && (
+                  <Badge variant="outline" className="text-accent border-accent">
+                    Premium
+                  </Badge>
+                )}
+              </div>
+              
+              {order.sauce?.id === item.id && (
+                <div className="mt-2">
+                  <Badge variant="default" className="bg-primary text-white">
+                    Selected
+                  </Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -125,13 +106,23 @@ export default function StepTwo() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Base
         </Button>
-        <Button
-          onClick={handleContinue}
-          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
-        >
-          Continue to Toppings
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
+        
+        <div className="flex gap-4">
+          <Button
+            onClick={handleSkip}
+            variant="outline"
+            className="px-8 py-3 rounded-full font-medium"
+          >
+            Skip Sauce
+          </Button>
+          <Button
+            onClick={handleContinue}
+            className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+          >
+            Continue to Toppings
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </div>
   );

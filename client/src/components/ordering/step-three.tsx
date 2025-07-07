@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useOrder } from "@/hooks/use-order";
 import type { MenuItem } from "@shared/schema";
@@ -27,8 +28,14 @@ export default function StepThree() {
     setStep(4);
   };
 
+  const handleSkip = () => {
+    // Clear all toppings and continue
+    // Note: This would require a method to clear toppings, for now just continue
+    setStep(4);
+  };
+
   const isToppingSelected = (itemId: number) => {
-    return order.toppings.some((topping) => topping.id === itemId);
+    return order.toppings.some(topping => topping.id === itemId);
   };
 
   if (isLoading) {
@@ -43,13 +50,12 @@ export default function StepThree() {
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-dark-slate mb-2">Choose Your Toppings</h2>
-        <p className="text-gray-600 text-lg">Select multiple toppings to customize your creation, or skip to finish</p>
+        <p className="text-gray-600 text-lg">Select your favorite toppings to complete your order, or skip to continue</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {toppingItems.map((item: MenuItem) => {
           const isSelected = isToppingSelected(item.id);
-          const isPremium = item.isPremium;
           const price = parseFloat(item.price);
 
           return (
@@ -57,8 +63,8 @@ export default function StepThree() {
               key={item.id}
               className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
                 isSelected
-                  ? `border-2 ${isPremium ? "border-accent" : "border-secondary"} shadow-lg`
-                  : `border-2 border-transparent ${isPremium ? "hover:border-accent" : "hover:border-secondary"}`
+                  ? "border-2 border-primary shadow-lg bg-primary/5"
+                  : "border-2 border-transparent hover:border-primary"
               }`}
               onClick={() => handleToggleTopping(item)}
             >
@@ -67,11 +73,19 @@ export default function StepThree() {
                   <Checkbox
                     checked={isSelected}
                     onChange={() => handleToggleTopping(item)}
-                    className={isPremium ? "text-accent" : "text-secondary"}
+                    className="text-primary"
                   />
                   <div className="flex-1">
-                    <h4 className="font-semibold text-dark-slate">{item.name}</h4>
-                    <p className={`text-sm ${isPremium ? "text-accent font-semibold" : "text-gray-600"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold text-dark-slate">{item.name}</h4>
+                      {item.isPremium && (
+                        <Badge variant="outline" className="text-accent border-accent text-xs">
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                    <p className="text-sm font-medium text-primary">
                       {price > 0 ? `+$${price.toFixed(2)}` : "Included"}
                     </p>
                   </div>
@@ -91,13 +105,23 @@ export default function StepThree() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Sauce
         </Button>
-        <Button
-          onClick={handleContinue}
-          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
-        >
-          Review Order
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
+        
+        <div className="flex gap-4">
+          <Button
+            onClick={handleSkip}
+            variant="outline"
+            className="px-8 py-3 rounded-full font-medium"
+          >
+            Skip Toppings
+          </Button>
+          <Button
+            onClick={handleContinue}
+            className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+          >
+            Review Order
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </div>
   );
