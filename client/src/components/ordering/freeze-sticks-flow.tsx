@@ -14,7 +14,9 @@ interface FreezeStickSelection {
   flavorQuantities: { [flavorId: number]: number }; // flavorId -> quantity
   sauce: MenuItem | null;
   additionalSticks: number;
+  additionalFlavorQuantities: { [flavorId: number]: number }; // Additional stick flavors
   additionalSauces: number;
+  additionalSauceSelections: MenuItem[]; // Additional sauce selections
 }
 
 export default function FreezeSticksFlow() {
@@ -25,7 +27,9 @@ export default function FreezeSticksFlow() {
     flavorQuantities: {},
     sauce: null,
     additionalSticks: 0,
+    additionalFlavorQuantities: {},
     additionalSauces: 0,
+    additionalSauceSelections: [],
   });
 
   const { data: sizes = [] } = useQuery({
@@ -64,19 +68,21 @@ export default function FreezeSticksFlow() {
   };
 
   const getTotalSticks = () => {
-    return Object.values(selection.flavorQuantities).reduce((sum, qty) => sum + qty, 0);
+    const baseSticks = Object.values(selection.flavorQuantities).reduce((sum, qty) => sum + qty, 0);
+    const additionalSticks = selection.additionalSticks;
+    return baseSticks + additionalSticks;
   };
 
   const handleFlavorQuantityChange = (flavorId: number, delta: number) => {
-    const maxSticks = getMaxSticks();
-    const currentTotal = getTotalSticks();
+    const baseMaxSticks = selection.size?.maxQuantity || 1;
+    const currentTotal = Object.values(selection.flavorQuantities).reduce((sum, qty) => sum + qty, 0);
     const currentQuantity = selection.flavorQuantities[flavorId] || 0;
     const newQuantity = Math.max(0, currentQuantity + delta);
     
-    // Check if adding this quantity would exceed the max sticks
+    // Check if adding this quantity would exceed the base package max sticks
     const newTotal = currentTotal - currentQuantity + newQuantity;
-    if (newTotal > maxSticks) {
-      return; // Don't allow exceeding max sticks
+    if (newTotal > baseMaxSticks) {
+      return; // Don't allow exceeding base package max sticks
     }
     
     setSelection(prev => {
@@ -94,8 +100,45 @@ export default function FreezeSticksFlow() {
     });
   };
 
+  const handleAdditionalFlavorQuantityChange = (flavorId: number, delta: number) => {
+    const currentQuantity = selection.additionalFlavorQuantities[flavorId] || 0;
+    const newQuantity = Math.max(0, currentQuantity + delta);
+    
+    // Check if adding this quantity would exceed the additional sticks limit
+    const currentTotal = Object.values(selection.additionalFlavorQuantities).reduce((sum, qty) => sum + qty, 0);
+    const newTotal = currentTotal - currentQuantity + newQuantity;
+    if (newTotal > selection.additionalSticks) {
+      return; // Don't allow exceeding additional sticks limit
+    }
+    
+    setSelection(prev => {
+      const newAdditionalFlavorQuantities = { ...prev.additionalFlavorQuantities };
+      if (newQuantity === 0) {
+        delete newAdditionalFlavorQuantities[flavorId];
+      } else {
+        newAdditionalFlavorQuantities[flavorId] = newQuantity;
+      }
+      
+      return {
+        ...prev,
+        additionalFlavorQuantities: newAdditionalFlavorQuantities
+      };
+    });
+  };
+
   const handleSauceSelect = (sauce: MenuItem) => {
     setSelection(prev => ({ ...prev, sauce }));
+  };
+
+  const handleAdditionalSauceSelect = (index: number, sauce: MenuItem) => {
+    setSelection(prev => {
+      const newAdditionalSauceSelections = [...prev.additionalSauceSelections];
+      newAdditionalSauceSelections[index] = sauce;
+      return {
+        ...prev,
+        additionalSauceSelections: newAdditionalSauceSelections
+      };
+    });
   };
 
   const calculateTotal = () => {
@@ -231,7 +274,7 @@ export default function FreezeSticksFlow() {
         </CardContent>
       </Card>
 
-      {/* Step 2: Flavor Selection */}
+      {/* Step 2: Flavor Selection with Additional Options */}
       {selection.size && (
         <Card className="mb-6">
           <CardHeader>
@@ -241,120 +284,74 @@ export default function FreezeSticksFlow() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(flavors as MenuItem[]).map((flavor) => {
-                const quantity = selection.flavorQuantities[flavor.id] || 0;
-                const maxSticks = getMaxSticks();
-                const currentTotal = getTotalSticks();
-                const canIncrease = currentTotal < maxSticks;
-                
-                return (
-                  <Card key={flavor.id} className="border">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium">{flavor.name}</h3>
-                          <p className="text-sm text-gray-600">{flavor.description}</p>
+            {/* Base Package Flavors */}
+            <div className="mb-6">
+              <h4 className="font-medium mb-3 text-primary">Base Package ({selection.size?.name})</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(flavors as MenuItem[]).map((flavor) => {
+                  const quantity = selection.flavorQuantities[flavor.id] || 0;
+                  const baseMaxSticks = selection.size?.maxQuantity || 1;
+                  const baseTotalSticks = Object.values(selection.flavorQuantities).reduce((sum, q) => sum + q, 0);
+                  const canIncrease = baseTotalSticks < baseMaxSticks;
+                  
+                  return (
+                    <Card key={flavor.id} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium">{flavor.name}</h3>
+                            <p className="text-sm text-gray-600">{flavor.description}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFlavorQuantityChange(flavor.id, -1)}
+                              disabled={quantity === 0}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-8 text-center font-medium">{quantity}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFlavorQuantityChange(flavor.id, 1)}
+                              disabled={!canIncrease}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleFlavorQuantityChange(flavor.id, -1)}
-                            disabled={quantity === 0}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center font-medium">{quantity}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleFlavorQuantityChange(flavor.id, 1)}
-                            disabled={!canIncrease}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  Base package: {Object.values(selection.flavorQuantities).reduce((sum, q) => sum + q, 0)}/{selection.size?.maxQuantity || 1} sticks selected
+                </p>
+              </div>
             </div>
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
-                Mix and match flavors up to {getMaxSticks()} sticks total. 
-                You currently have {getTotalSticks()} stick{getTotalSticks() !== 1 ? 's' : ''} selected.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Step 3: Sauce Selection */}
-      {selection.size && getTotalSticks() > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm">3</span>
-              Choose Your Sauce
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {(sauces as MenuItem[]).map((sauce) => (
-                <Card
-                  key={sauce.id}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    selection.sauce?.id === sauce.id 
-                      ? 'border-primary bg-primary/5' 
-                      : 'hover:border-primary/50'
-                  }`}
-                  onClick={() => handleSauceSelect(sauce)}
-                >
-                  <CardContent className="p-4 text-center">
-                    <h3 className="font-medium mb-1">{sauce.name}</h3>
-                    {selection.sauce?.id === sauce.id && (
-                      <Badge className="bg-primary text-white">Selected</Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 4: Add-ons */}
-      {canProceed() && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm">4</span>
-              Add-ons (Optional)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Additional Freeze Sticks */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">Additional Freeze Sticks</h3>
-                  <p className="text-sm text-gray-600">$2.00 each</p>
-                </div>
+            {/* Additional Sticks Section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-secondary">Additional Freeze Sticks ($2.00 each)</h4>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setSelection(prev => ({ 
                       ...prev, 
-                      additionalSticks: Math.max(0, prev.additionalSticks - 1) 
+                      additionalSticks: Math.max(0, prev.additionalSticks - 1),
+                      additionalFlavorQuantities: prev.additionalSticks <= 1 ? {} : prev.additionalFlavorQuantities
                     }))}
                     disabled={selection.additionalSticks === 0}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-8 text-center">{selection.additionalSticks}</span>
+                  <span className="w-8 text-center font-medium">{selection.additionalSticks}</span>
                   <Button
                     size="sm"
                     variant="outline"
@@ -368,25 +365,116 @@ export default function FreezeSticksFlow() {
                 </div>
               </div>
 
-              {/* Additional Sauces */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">Additional Sauces</h3>
-                  <p className="text-sm text-gray-600">$0.50 each</p>
+              {/* Additional Stick Flavors */}
+              {selection.additionalSticks > 0 && (
+                <div className="border rounded-lg p-4 bg-orange-50">
+                  <p className="text-sm text-orange-800 mb-3">
+                    Choose flavors for your {selection.additionalSticks} additional stick{selection.additionalSticks !== 1 ? 's' : ''}:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {(flavors as MenuItem[]).map((flavor) => {
+                      const additionalQuantity = selection.additionalFlavorQuantities[flavor.id] || 0;
+                      const additionalTotal = Object.values(selection.additionalFlavorQuantities).reduce((sum, q) => sum + q, 0);
+                      const canIncrease = additionalTotal < selection.additionalSticks;
+                      
+                      return (
+                        <div key={`additional-${flavor.id}`} className="flex items-center justify-between p-2 bg-white rounded border">
+                          <span className="text-sm font-medium">{flavor.name}</span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAdditionalFlavorQuantityChange(flavor.id, -1)}
+                              disabled={additionalQuantity === 0}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-6 text-center text-sm">{additionalQuantity}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAdditionalFlavorQuantityChange(flavor.id, 1)}
+                              disabled={!canIncrease}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 text-xs text-orange-600">
+                    Additional flavors selected: {Object.values(selection.additionalFlavorQuantities).reduce((sum, q) => sum + q, 0)}/{selection.additionalSticks}
+                  </div>
                 </div>
+              )}
+            </div>
+
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                Total sticks: {getTotalSticks()} 
+                (Base: {Object.values(selection.flavorQuantities).reduce((sum, q) => sum + q, 0)} + Additional: {selection.additionalSticks})
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Sauce Selection with Additional Options */}
+      {selection.size && getTotalSticks() > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm">3</span>
+              Choose Your Sauce
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Base Sauce Selection */}
+            <div className="mb-6">
+              <h4 className="font-medium mb-3 text-primary">Base Sauce (Included)</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(sauces as MenuItem[]).map((sauce) => (
+                  <Card
+                    key={sauce.id}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      selection.sauce?.id === sauce.id 
+                        ? 'border-primary bg-primary/5' 
+                        : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => handleSauceSelect(sauce)}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <h3 className="font-medium mb-1">{sauce.name}</h3>
+                      {selection.sauce?.id === sauce.id && (
+                        <Badge className="bg-primary text-white">Selected</Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Sauces Section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-secondary">Additional Sauces ($0.50 each)</h4>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setSelection(prev => ({ 
                       ...prev, 
-                      additionalSauces: Math.max(0, prev.additionalSauces - 1) 
+                      additionalSauces: Math.max(0, prev.additionalSauces - 1),
+                      additionalSauceSelections: prev.additionalSauces <= 1 ? [] : prev.additionalSauceSelections.slice(0, prev.additionalSauces - 1)
                     }))}
                     disabled={selection.additionalSauces === 0}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-8 text-center">{selection.additionalSauces}</span>
+                  <span className="w-8 text-center font-medium">{selection.additionalSauces}</span>
                   <Button
                     size="sm"
                     variant="outline"
@@ -399,6 +487,38 @@ export default function FreezeSticksFlow() {
                   </Button>
                 </div>
               </div>
+
+              {/* Additional Sauce Selection */}
+              {selection.additionalSauces > 0 && (
+                <div className="border rounded-lg p-4 bg-purple-50">
+                  <p className="text-sm text-purple-800 mb-3">
+                    Choose {selection.additionalSauces} additional sauce{selection.additionalSauces !== 1 ? 's' : ''}:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {Array.from({ length: selection.additionalSauces }, (_, index) => (
+                      <div key={`additional-sauce-${index}`} className="space-y-2">
+                        <p className="text-xs font-medium text-purple-700">Sauce #{index + 1}</p>
+                        <div className="grid grid-cols-1 gap-2">
+                          {(sauces as MenuItem[]).map((sauce) => (
+                            <Button
+                              key={`${index}-${sauce.id}`}
+                              size="sm"
+                              variant={selection.additionalSauceSelections[index]?.id === sauce.id ? "default" : "outline"}
+                              onClick={() => handleAdditionalSauceSelect(index, sauce)}
+                              className="text-xs h-8"
+                            >
+                              {sauce.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-xs text-purple-600">
+                    Additional sauces selected: {selection.additionalSauceSelections.filter(s => s).length}/{selection.additionalSauces}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -417,15 +537,28 @@ export default function FreezeSticksFlow() {
                 <span>${parseFloat(selection.size?.price.toString() || "0").toFixed(2)}</span>
               </div>
               <div className="text-sm text-gray-600 mb-2">
-                Flavors: {Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
+                Base Flavors: {Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
                   const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
                   return `${flavor?.name} (${qty})`;
                 }).join(', ')}
               </div>
+              {selection.additionalSticks > 0 && Object.keys(selection.additionalFlavorQuantities).length > 0 && (
+                <div className="text-sm text-gray-600 mb-2">
+                  Additional Flavors: {Object.entries(selection.additionalFlavorQuantities).map(([flavorId, qty]) => {
+                    const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
+                    return `${flavor?.name} (${qty})`;
+                  }).join(', ')}
+                </div>
+              )}
               <div className="flex justify-between">
-                <span>Sauce: {selection.sauce?.name}</span>
+                <span>Base Sauce: {selection.sauce?.name}</span>
                 <span>Included</span>
               </div>
+              {selection.additionalSauceSelections.length > 0 && (
+                <div className="text-sm text-gray-600 mb-2">
+                  Additional Sauces: {selection.additionalSauceSelections.filter(s => s).map(sauce => sauce.name).join(', ')}
+                </div>
+              )}
               {selection.additionalSticks > 0 && (
                 <div className="flex justify-between">
                   <span>Additional Sticks × {selection.additionalSticks}</span>
