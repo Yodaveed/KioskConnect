@@ -10,8 +10,8 @@ export default function StepOne() {
   const { selectBase, setStep, order, selectedMenuId } = useOrder();
 
   const { data: baseItems = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/base", selectedMenuId],
-    queryFn: () => fetch(`/api/menu/base?menuId=${selectedMenuId}`).then(res => res.json()),
+    queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
+    enabled: !!selectedMenuId,
   });
 
   const handleSelectBase = (item: MenuItem) => {

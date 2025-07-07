@@ -42,7 +42,7 @@ export default function EasyCart() {
       };
 
       const response = await apiRequest("POST", "/api/carts/submit", cartData);
-      return response.json();
+      return response;
     },
     onSuccess: (data) => {
       toast({

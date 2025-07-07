@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, ArrowRight } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { MenuItem } from "@shared/schema";
 
 interface FreezeStickSelection {
@@ -20,6 +22,7 @@ interface FreezeStickSelection {
 export default function FreezeSticksFlow() {
   const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
   const { isActive, addItem, setCartId } = useCart();
+  const { toast } = useToast();
   const [selection, setSelection] = useState<FreezeStickSelection>({
     size: null,
     flavorQuantities: {},
@@ -29,18 +32,18 @@ export default function FreezeSticksFlow() {
   });
 
   const { data: sizes = [] } = useQuery({
-    queryKey: ["/api/menu/size", selectedMenuId],
-    queryFn: () => fetch(`/api/menu/size?menuId=${selectedMenuId}`).then(res => res.json()),
+    queryKey: [`/api/menu/size?menuId=${selectedMenuId}`],
+    enabled: !!selectedMenuId,
   });
 
   const { data: flavors = [] } = useQuery({
-    queryKey: ["/api/menu/flavor", selectedMenuId],
-    queryFn: () => fetch(`/api/menu/flavor?menuId=${selectedMenuId}`).then(res => res.json()),
+    queryKey: [`/api/menu/flavor?menuId=${selectedMenuId}`],
+    enabled: !!selectedMenuId,
   });
 
   const { data: sauces = [] } = useQuery({
-    queryKey: ["/api/menu/sauce", selectedMenuId],
-    queryFn: () => fetch(`/api/menu/sauce?menuId=${selectedMenuId}`).then(res => res.json()),
+    queryKey: [`/api/menu/sauce?menuId=${selectedMenuId}`],
+    enabled: !!selectedMenuId,
   });
 
   const handleSizeSelect = (size: MenuItem) => {
@@ -133,75 +136,133 @@ export default function FreezeSticksFlow() {
     return hasSize && hasMinimumFlavors && hasFilledFlavors && hasSauce;
   };
 
-  const handleComplete = () => {
-    // Create order in the expected format
-    const orderNumber = `FS${Date.now().toString().slice(-6)}`;
-    setOrderNumber(orderNumber);
-    
-    // Store the custom order data
-    const customOrder = {
-      menuType: "freeze-sticks",
-      items: [
-        {
-          type: "size",
-          item: selection.size,
-          quantity: 1
-        },
-        {
-          type: "flavors",
-          items: Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
-            const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
-            return { flavor, quantity: qty };
-          }),
-          quantity: getTotalFlavorSticks()
-        },
-        {
-          type: "sauce",
-          item: selection.sauce,
-          quantity: 1
-        }
-      ],
-      addons: [
-        ...(selection.additionalSticks > 0 ? [{
-          name: "Additional Freeze Sticks",
-          quantity: selection.additionalSticks,
-          price: 2
-        }] : []),
-        ...(selection.additionalSauces > 0 ? [{
-          name: "Additional Sauces",
-          quantity: selection.additionalSauces,
-          price: 0.5
-        }] : [])
-      ],
-      total: calculateTotal()
-    };
-    
-    // Add to cart if cart is active
-    if (isActive) {
-      // Get customer name from the DOM element set by OrderWrapper
+  const submitOrderMutation = useMutation({
+    mutationFn: async () => {
       const customerNameElement = document.querySelector('[data-customer-name]');
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
-      // Add item to cart
-      addItem({
+      const customOrder = {
+        menuType: "freeze-sticks",
+        items: [
+          {
+            type: "size",
+            item: selection.size,
+            quantity: 1
+          },
+          {
+            type: "flavors",
+            items: Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
+              const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
+              return { flavor, quantity: qty };
+            }),
+            quantity: getTotalFlavorSticks()
+          },
+          {
+            type: "sauce",
+            item: selection.sauce,
+            quantity: 1
+          }
+        ],
+        addons: [
+          ...(selection.additionalSticks > 0 ? [{
+            name: "Additional Freeze Sticks",
+            quantity: selection.additionalSticks,
+            price: 2
+          }] : []),
+          ...(selection.additionalSauces > 0 ? [{
+            name: "Additional Sauces",
+            quantity: selection.additionalSauces,
+            price: 0.5
+          }] : [])
+        ],
+        total: calculateTotal()
+      };
+      
+      const orderData = {
         customerName,
+        totalAmount: calculateTotal().toFixed(2),
+        items: customOrder,
+      };
+
+      const response = await apiRequest("POST", "/api/orders", orderData);
+      return response;
+    },
+    onSuccess: (data) => {
+      setOrderNumber(data.orderNumber);
+      
+      // Store order details for confirmation
+      const orderForStorage = {
         menuType: "Freeze Sticks",
-        orderData: customOrder,
-        totalPrice: calculateTotal()
+        orderNumber: data.orderNumber,
+        orderData: {
+          menuType: "freeze-sticks",
+          items: [
+            {
+              type: "size",
+              item: selection.size,
+              quantity: 1
+            },
+            {
+              type: "flavors",
+              items: Object.entries(selection.flavorQuantities).map(([flavorId, qty]) => {
+                const flavor = (flavors as MenuItem[]).find(f => f.id === Number(flavorId));
+                return { flavor, quantity: qty };
+              }),
+              quantity: getTotalFlavorSticks()
+            },
+            {
+              type: "sauce",
+              item: selection.sauce,
+              quantity: 1
+            }
+          ],
+          addons: [
+            ...(selection.additionalSticks > 0 ? [{
+              name: "Additional Freeze Sticks",
+              quantity: selection.additionalSticks,
+              price: 2
+            }] : []),
+            ...(selection.additionalSauces > 0 ? [{
+              name: "Additional Sauces",
+              quantity: selection.additionalSauces,
+              price: 0.5
+            }] : [])
+          ],
+          total: calculateTotal()
+        },
+        totalPrice: calculateTotal(),
+        total: calculateTotal()
+      };
+      localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
+      
+      // Clear selections
+      setSelection({
+        size: null,
+        flavorQuantities: {},
+        sauce: null,
+        additionalSticks: 0,
+        additionalSauces: 0,
       });
-    }
-    
-    // Store in localStorage with consistent structure for order confirmation
-    const orderForStorage = {
-      menuType: "Freeze Sticks",
-      orderNumber: orderNumber,
-      orderData: customOrder,
-      totalPrice: calculateTotal(),
-      total: calculateTotal()
-    };
-    localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
-    
-    setStep(4); // Go to confirmation
+      
+      // Go to confirmation
+      setStep(4);
+      
+      toast({
+        title: "Order Placed!",
+        description: `Your freeze sticks order #${data.orderNumber} has been placed successfully.`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Order Failed",
+        description: error.message || "Failed to place order. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleComplete = () => {
+    submitOrderMutation.mutate();
   };
 
   const handleAddToOrder = () => {

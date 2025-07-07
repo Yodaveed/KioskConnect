@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 import type { MenuItem } from "@shared/schema";
 
 interface PintSelection {
@@ -23,8 +24,7 @@ export default function PintsFlow() {
   const [selections, setSelections] = useState<PintSelection>({});
 
   const { data: pints = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/flavor", selectedMenuId],
-    queryFn: () => fetch(`/api/menu/flavor?menuId=${selectedMenuId}`).then(res => res.json()),
+    queryKey: [`/api/menu/flavor?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
@@ -65,36 +65,55 @@ export default function PintsFlow() {
     };
   };
 
-  const handleSubmitOrder = () => {
-    const orderNumber = `PT${Date.now().toString().slice(-6)}`;
-    setOrderNumber(orderNumber);
-    
-    const customOrder = createOrderData();
-    
-    // Add to cart if cart is active
-    if (isActive) {
+  const submitOrderMutation = useMutation({
+    mutationFn: async () => {
       const customerNameElement = document.querySelector('[data-customer-name]');
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
-      addItem({
+      const orderData = {
         customerName,
+        totalAmount: getTotalPrice().toFixed(2),
+        items: createOrderData(),
+      };
+
+      const response = await apiRequest("POST", "/api/orders", orderData);
+      return response;
+    },
+    onSuccess: (data) => {
+      setOrderNumber(data.orderNumber);
+      
+      // Store order details for confirmation
+      const orderForStorage = {
         menuType: "Pints",
-        orderData: customOrder,
-        totalPrice: getTotalPrice()
+        orderNumber: data.orderNumber,
+        orderData: createOrderData(),
+        totalPrice: getTotalPrice(),
+        total: getTotalPrice()
+      };
+      localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
+      
+      // Clear selections
+      setSelections({});
+      
+      // Go to confirmation
+      setStep(4);
+      
+      toast({
+        title: "Order Placed!",
+        description: `Your pints order #${data.orderNumber} has been placed successfully.`
       });
-    }
-    
-    // Store in localStorage with consistent structure for order confirmation
-    const orderForStorage = {
-      menuType: "Pints",
-      orderNumber: orderNumber,
-      orderData: customOrder,
-      totalPrice: getTotalPrice(),
-      total: getTotalPrice()
-    };
-    localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
-    
-    setStep(4); // Go to confirmation
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Order Failed",
+        description: error.message || "Failed to place order. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmitOrder = () => {
+    submitOrderMutation.mutate();
   };
 
   const handleAddToOrder = () => {

@@ -10,8 +10,8 @@ export default function StepTwo() {
   const { selectSauce, setStep, order, selectedMenuId } = useOrder();
 
   const { data: sauceItems = [], isLoading } = useQuery({
-    queryKey: ["/api/menu/sauce", selectedMenuId],
-    queryFn: () => fetch(`/api/menu/sauce?menuId=${selectedMenuId}`).then(res => res.json()),
+    queryKey: [`/api/menu/sauce?menuId=${selectedMenuId}`],
+    enabled: !!selectedMenuId,
   });
 
   const handleSelectSauce = (item: MenuItem) => {

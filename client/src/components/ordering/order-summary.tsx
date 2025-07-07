@@ -36,7 +36,7 @@ export default function OrderSummary() {
         },
       };
 
-      const response = await apiRequest("/api/orders", "POST", orderData);
+      const response = await apiRequest("POST", "/api/orders", orderData);
       return response;
     },
     onSuccess: (data) => {
