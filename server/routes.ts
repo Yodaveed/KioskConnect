@@ -3,633 +3,320 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMenuItemSchema, insertOrderSchema, insertUserSchema, insertMenuSchema, insertCartSchema } from "@shared/schema";
 import { z } from "zod";
+import { 
+  asyncHandler, 
+  validateBody, 
+  validatePartialBody, 
+  validateIdParam, 
+  successResponse, 
+  errorResponse,
+  globalErrorHandler 
+} from "./middleware";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Menu type endpoints
-  app.get("/api/menus", async (req, res) => {
-    try {
-      const menus = await storage.getMenus();
-      res.json(menus);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch menus" });
-    }
-  });
+  // ==================== MENU TYPE ROUTES ====================
+  
+  // GET /api/menus - Get all menus
+  app.get("/api/menus", asyncHandler(async (req, res) => {
+    const menus = await storage.getMenus();
+    res.json(successResponse(menus));
+  }));
 
-  app.post("/api/menus", async (req, res) => {
-    try {
-      const validatedData = insertMenuSchema.parse(req.body);
-      const menu = await storage.createMenu(validatedData);
-      res.status(201).json(menu);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid menu data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create menu" });
-      }
-    }
-  });
+  // POST /api/menus - Create new menu
+  app.post("/api/menus", 
+    validateBody(insertMenuSchema),
+    asyncHandler(async (req, res) => {
+      const menu = await storage.createMenu(req.body);
+      res.status(201).json(successResponse(menu, "Menu created successfully"));
+    })
+  );
 
-  app.put("/api/menus/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const validatedData = insertMenuSchema.partial().parse(req.body);
-      const menu = await storage.updateMenu(parseInt(id), validatedData);
-      res.json(menu);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid menu data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to update menu" });
-      }
-    }
-  });
+  // PUT /api/menus/:id - Update menu
+  app.put("/api/menus/:id", 
+    validateIdParam,
+    validatePartialBody(insertMenuSchema),
+    asyncHandler(async (req, res) => {
+      const menu = await storage.updateMenu(parseInt(req.params.id), req.body);
+      res.json(successResponse(menu, "Menu updated successfully"));
+    })
+  );
 
-  app.delete("/api/menus/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteMenu(parseInt(id));
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete menu" });
-    }
-  });
+  // DELETE /api/menus/:id - Delete menu
+  app.delete("/api/menus/:id", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      await storage.deleteMenu(parseInt(req.params.id));
+      res.json(successResponse(null, "Menu deleted successfully"));
+    })
+  );
 
-  // Menu item endpoints
-  app.get("/api/menu", async (req, res) => {
-    try {
-      const { menuId } = req.query;
-      const menuItems = await storage.getMenuItems(menuId ? parseInt(menuId as string) : undefined);
-      res.json(menuItems);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch menu items" });
-    }
-  });
+  // ==================== MENU ITEM ROUTES ====================
 
-  app.get("/api/menu/:category", async (req, res) => {
-    try {
-      const { category } = req.params;
-      const { menuId } = req.query;
-      const menuItems = await storage.getMenuItemsByCategory(category, menuId ? parseInt(menuId as string) : undefined);
-      res.json(menuItems);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch menu items" });
-    }
-  });
+  // GET /api/menu - Get all menu items (with optional menuId filter)
+  app.get("/api/menu", asyncHandler(async (req, res) => {
+    const { menuId } = req.query;
+    const menuItems = await storage.getMenuItems(menuId ? parseInt(menuId as string) : undefined);
+    res.json(successResponse(menuItems));
+  }));
 
-  app.post("/api/menu", async (req, res) => {
-    try {
-      const validatedData = insertMenuItemSchema.parse(req.body);
-      const menuItem = await storage.createMenuItem(validatedData);
-      res.status(201).json(menuItem);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid menu item data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create menu item" });
-      }
-    }
-  });
+  // GET /api/menu/:category - Get menu items by category
+  app.get("/api/menu/:category", asyncHandler(async (req, res) => {
+    const { category } = req.params;
+    const { menuId } = req.query;
+    const menuItems = await storage.getMenuItemsByCategory(
+      category, 
+      menuId ? parseInt(menuId as string) : undefined
+    );
+    res.json(successResponse(menuItems));
+  }));
 
-  app.put("/api/menu/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const validatedData = insertMenuItemSchema.partial().parse(req.body);
-      const menuItem = await storage.updateMenuItem(parseInt(id), validatedData);
-      res.json(menuItem);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid menu item data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to update menu item" });
-      }
-    }
-  });
+  // POST /api/menu - Create new menu item
+  app.post("/api/menu", 
+    validateBody(insertMenuItemSchema),
+    asyncHandler(async (req, res) => {
+      const menuItem = await storage.createMenuItem(req.body);
+      res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
+    })
+  );
 
-  app.delete("/api/menu/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteMenuItem(parseInt(id));
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete menu item" });
-    }
-  });
+  // PUT /api/menu/:id - Update menu item
+  app.put("/api/menu/:id", 
+    validateIdParam,
+    validatePartialBody(insertMenuItemSchema),
+    asyncHandler(async (req, res) => {
+      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), req.body);
+      res.json(successResponse(menuItem, "Menu item updated successfully"));
+    })
+  );
 
-  // Order endpoints
-  app.post("/api/orders", async (req, res) => {
-    try {
-      const orderData = {
-        ...req.body,
-        orderNumber: storage.generateOrderNumber(),
-        status: "pending",
-      };
-      const validatedData = insertOrderSchema.parse(orderData);
-      const order = await storage.createOrder(validatedData);
-      res.status(201).json(order);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid order data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create order" });
-      }
-    }
-  });
+  // DELETE /api/menu/:id - Delete menu item
+  app.delete("/api/menu/:id", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      await storage.deleteMenuItem(parseInt(req.params.id));
+      res.json(successResponse(null, "Menu item deleted successfully"));
+    })
+  );
 
-  app.get("/api/orders", async (req, res) => {
-    try {
-      const orders = await storage.getOrders();
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch orders" });
-    }
-  });
-
-  app.get("/api/orders/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const order = await storage.getOrderById(parseInt(id));
-      if (!order) {
-        return res.status(404).json({ error: "Order not found" });
-      }
-      res.json(order);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch order" });
-    }
-  });
-
-  app.put("/api/orders/:id/status", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-      const order = await storage.updateOrderStatus(parseInt(id), status);
-      res.json(order);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update order status" });
-    }
-  });
-
-  // Analytics endpoints
-  app.get("/api/analytics/stats", async (req, res) => {
-    try {
-      const { startDate, endDate } = req.query;
-      const stats = await storage.getOrderStats(
-        startDate ? new Date(startDate as string) : undefined,
-        endDate ? new Date(endDate as string) : undefined
-      );
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch analytics" });
-    }
-  });
-
-  // Authentication endpoints
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      const user = await storage.getUserByUsername(username);
-      
-      if (!user || user.password !== password) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-      
-      if (!user.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-      
-      res.json({ success: true, user: { id: user.id, username: user.username, isAdmin: user.isAdmin } });
-    } catch (error) {
-      res.status(500).json({ error: "Login failed" });
-    }
-  });
-
-  // QR Code generation endpoint
-  app.post("/api/qr/generate", async (req, res) => {
-    try {
-      const { tableNumber, size = "medium" } = req.body;
-      const baseUrl = req.get('host') || 'localhost:5000';
-      const qrUrl = `http://${baseUrl}/?table=${tableNumber}`;
-      
-      res.json({
-        url: qrUrl,
-        tableNumber,
-        size,
-        qrCodeData: qrUrl
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to generate QR code" });
-    }
-  });
-
-  // Cart submission endpoint
-  app.post("/api/carts/submit", async (req, res) => {
-    try {
-      const { items, totalAmount } = req.body;
-      
-      // Create individual orders for each item in the cart
-      const orderNumber = storage.generateOrderNumber();
-      const orderPromises = items.map(async (item: any) => {
-        const orderData = {
-          customerName: item.customerName,
-          totalAmount: item.totalPrice.toString(),
-          items: item.orderData,
-          orderNumber: orderNumber
-        };
-        
-        return await storage.createOrder(orderData);
-      });
-      
-      const orders = await Promise.all(orderPromises);
-      
-      res.json({
-        success: true,
-        orderNumber,
-        orders: orders.length,
-        totalAmount
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to submit cart" });
-    }
-  });
-
-  // Cart endpoints
-  app.post("/api/carts", async (req, res) => {
-    try {
-      const validatedData = insertCartSchema.parse(req.body);
-      const cart = await storage.createCart(validatedData);
-      res.status(201).json(cart);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid cart data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create cart" });
-      }
-    }
-  });
-
-  app.get("/api/carts/:cartId", async (req, res) => {
-    try {
-      const cart = await storage.getCart(req.params.cartId);
-      if (!cart) {
-        return res.status(404).json({ error: "Cart not found" });
-      }
-      res.json(cart);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch cart" });
-    }
-  });
-
-  app.put("/api/carts/:cartId", async (req, res) => {
-    try {
-      const validatedData = insertCartSchema.partial().parse(req.body);
-      const cart = await storage.updateCart(req.params.cartId, validatedData);
-      res.json(cart);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid cart data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to update cart" });
-      }
-    }
-  });
-
-  app.delete("/api/carts/:cartId", async (req, res) => {
-    try {
-      await storage.deleteCart(req.params.cartId);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete cart" });
-    }
-  });
-
-  // Cart submission endpoint
-  app.post("/api/carts/submit", async (req, res) => {
-    try {
-      const { cartId, items, totalAmount } = req.body;
-      
-      if (!cartId || !items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ error: "Invalid cart data" });
-      }
-
-      // Generate group order number
-      const orderNumber = storage.generateOrderNumber();
-      
-      // Create a single order for the entire group
-      const groupOrder = await storage.createOrder({
-        orderNumber,
-        customerName: `Group Cart: ${cartId}`,
-        totalAmount: totalAmount,
-        items: JSON.stringify({
-          cartId,
-          groupItems: items,
-          itemCount: items.length,
-          customers: Array.from(new Set(items.map(item => item.customerName)))
-        }),
-        status: 'pending'
-      });
-
-      res.json({
-        success: true,
-        orderNumber,
-        orderId: groupOrder.id,
-        cartId,
-        totalAmount,
-        itemCount: items.length
-      });
-    } catch (error) {
-      console.error('Cart submission error:', error);
-      res.status(500).json({ error: "Failed to submit cart" });
-    }
-  });
-
-  // Sold-out endpoints
-  app.put("/api/menu-items/:id/sold-out", async (req, res) => {
-    try {
+  // PUT /api/menu/:id/sold-out - Toggle sold out status
+  app.put("/api/menu/:id/sold-out", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
       const { soldOut } = req.body;
-      const itemId = parseInt(req.params.id);
+      const menuItem = await storage.markItemSoldOut(parseInt(req.params.id), soldOut);
+      res.json(successResponse(menuItem, `Item marked as ${soldOut ? 'sold out' : 'available'}`));
+    })
+  );
+
+  // ==================== ORDER ROUTES ====================
+
+  // GET /api/orders - Get all orders
+  app.get("/api/orders", asyncHandler(async (req, res) => {
+    const orders = await storage.getOrders();
+    res.json(successResponse(orders));
+  }));
+
+  // GET /api/orders/:id - Get specific order
+  app.get("/api/orders/:id", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const order = await storage.getOrderById(parseInt(req.params.id));
+      if (!order) {
+        return res.status(404).json(errorResponse("Order not found"));
+      }
+      res.json(successResponse(order));
+    })
+  );
+
+  // POST /api/orders - Create new order
+  app.post("/api/orders", asyncHandler(async (req, res) => {
+    const orderData = {
+      ...req.body,
+      orderNumber: storage.generateOrderNumber(),
+      status: "pending",
+    };
+    
+    const validatedData = insertOrderSchema.parse(orderData);
+    const order = await storage.createOrder(validatedData);
+    res.status(201).json(successResponse(order, "Order placed successfully"));
+  }));
+
+  // PUT /api/orders/:id/status - Update order status
+  app.put("/api/orders/:id/status", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const { status } = req.body;
       
-      if (typeof soldOut !== 'boolean') {
-        return res.status(400).json({ error: "soldOut must be a boolean" });
+      if (!status || !["pending", "preparing", "completed", "cancelled"].includes(status)) {
+        return res.status(400).json(errorResponse("Invalid status"));
       }
       
-      const updatedItem = await storage.markItemSoldOut(itemId, soldOut);
-      res.json(updatedItem);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update sold-out status" });
-    }
-  });
+      const order = await storage.updateOrderStatus(parseInt(req.params.id), status);
+      res.json(successResponse(order, "Order status updated successfully"));
+    })
+  );
 
-  // Initialize with some sample data
+  // ==================== ANALYTICS ROUTES ====================
+
+  // GET /api/analytics/stats - Get order statistics
+  app.get("/api/analytics/stats", asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+    const stats = await storage.getOrderStats(
+      startDate ? new Date(startDate as string) : undefined,
+      endDate ? new Date(endDate as string) : undefined
+    );
+    res.json(successResponse(stats));
+  }));
+
+  // ==================== AUTHENTICATION ROUTES ====================
+
+  // POST /api/auth/login - Admin login
+  app.post("/api/auth/login", asyncHandler(async (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json(errorResponse("Username and password required"));
+    }
+    
+    const user = await storage.getUserByUsername(username);
+    
+    if (!user || user.password !== password) {
+      return res.status(401).json(errorResponse("Invalid credentials"));
+    }
+    
+    if (!user.isAdmin) {
+      return res.status(403).json(errorResponse("Admin access required"));
+    }
+    
+    res.json(successResponse({
+      user: { 
+        id: user.id, 
+        username: user.username, 
+        isAdmin: user.isAdmin 
+      }
+    }, "Login successful"));
+  }));
+
+  // ==================== QR CODE ROUTES ====================
+
+  // POST /api/qr/generate - Generate QR code for table
+  app.post("/api/qr/generate", asyncHandler(async (req, res) => {
+    const { tableNumber, size = "medium" } = req.body;
+    
+    if (!tableNumber) {
+      return res.status(400).json(errorResponse("Table number is required"));
+    }
+    
+    const baseUrl = req.get('host') || 'localhost:5000';
+    const qrUrl = `http://${baseUrl}/?table=${tableNumber}`;
+    
+    res.json(successResponse({
+      url: qrUrl,
+      tableNumber,
+      size,
+      qrCodeData: qrUrl
+    }, "QR code generated successfully"));
+  }));
+
+  // ==================== CART ROUTES ====================
+
+  // POST /api/carts - Create new cart
+  app.post("/api/carts", 
+    validateBody(insertCartSchema),
+    asyncHandler(async (req, res) => {
+      const cart = await storage.createCart(req.body);
+      res.status(201).json(successResponse(cart, "Cart created successfully"));
+    })
+  );
+
+  // GET /api/carts/:cartId - Get cart by ID
+  app.get("/api/carts/:cartId", asyncHandler(async (req, res) => {
+    const cart = await storage.getCart(req.params.cartId);
+    if (!cart) {
+      return res.status(404).json(errorResponse("Cart not found"));
+    }
+    res.json(successResponse(cart));
+  }));
+
+  // PUT /api/carts/:cartId - Update cart
+  app.put("/api/carts/:cartId", 
+    validatePartialBody(insertCartSchema),
+    asyncHandler(async (req, res) => {
+      const cart = await storage.updateCart(req.params.cartId, req.body);
+      res.json(successResponse(cart, "Cart updated successfully"));
+    })
+  );
+
+  // DELETE /api/carts/:cartId - Delete cart
+  app.delete("/api/carts/:cartId", asyncHandler(async (req, res) => {
+    await storage.deleteCart(req.params.cartId);
+    res.json(successResponse(null, "Cart deleted successfully"));
+  }));
+
+  // POST /api/carts/submit - Submit entire cart as orders
+  app.post("/api/carts/submit", asyncHandler(async (req, res) => {
+    const { items, totalAmount } = req.body;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json(errorResponse("Cart items are required"));
+    }
+    
+    // Create individual orders for each item in the cart
+    const orderNumber = storage.generateOrderNumber();
+    const orderPromises = items.map(async (item: any) => {
+      const orderData = {
+        customerName: item.customerName,
+        totalAmount: item.totalPrice.toString(),
+        items: item.orderData,
+        orderNumber: orderNumber,
+        status: "pending"
+      };
+      
+      return await storage.createOrder(orderData);
+    });
+    
+    const orders = await Promise.all(orderPromises);
+    
+    res.json(successResponse({
+      orderNumber,
+      ordersCreated: orders.length,
+      totalAmount
+    }, "Cart submitted successfully"));
+  }));
+
+  // ==================== SAMPLE DATA INITIALIZATION ====================
+  
   await initializeSampleData();
+
+  // ==================== ERROR HANDLING ====================
+  
+  // Global error handler
+  app.use(globalErrorHandler);
 
   const httpServer = createServer(app);
   return httpServer;
 }
 
+// Initialize sample data if needed
 async function initializeSampleData() {
   try {
-    // Create admin user
-    const adminUser = await storage.getUserByUsername("admin");
-    if (!adminUser) {
+    // Check if admin user exists
+    const existingAdmin = await storage.getUserByUsername("admin");
+    if (!existingAdmin) {
       await storage.createUser({
         username: "admin",
         password: "admin123",
-        isAdmin: true,
+        isAdmin: true
       });
+      console.log("✓ Admin user created (username: admin, password: admin123)");
     }
 
-    // Create default menus if they don't exist
+    // Check if menus exist
     const existingMenus = await storage.getMenus();
-    let spaghettiMenu, burgerMenu, soupMenu, pintsMenu;
-    
     if (existingMenus.length === 0) {
-      spaghettiMenu = await storage.createMenu({
-        name: "Spaghetti",
-        description: "Our signature spaghetti ice cream menu",
-        isActive: true,
-        sortOrder: 1,
-      });
-      
-      burgerMenu = await storage.createMenu({
-        name: "Burger",
-        description: "Burger-style ice cream creations",
-        isActive: true,
-        sortOrder: 2,
-      });
-      
-      soupMenu = await storage.createMenu({
-        name: "Soup",
-        description: "Soup-style ice cream presentations",
-        isActive: true,
-        sortOrder: 3,
-      });
-      
-      pintsMenu = await storage.createMenu({
-        name: "Pints",
-        description: "Take-home pint containers",
-        isActive: true,
-        sortOrder: 4,
-      });
-    } else {
-      spaghettiMenu = existingMenus.find(m => m.name === "Spaghetti") || existingMenus[0];
-      burgerMenu = existingMenus.find(m => m.name === "Burger") || existingMenus[0];
-      soupMenu = existingMenus.find(m => m.name === "Soup") || existingMenus[0];
-      pintsMenu = existingMenus.find(m => m.name === "Pints") || existingMenus[0];
-    }
-
-    // Create sample menu items for Spaghetti menu
-    const existingItems = await storage.getMenuItems();
-    if (existingItems.length === 0) {
-      const sampleItems = [
-        // Bases for Spaghetti menu
-        {
-          menuId: spaghettiMenu.id,
-          name: "Vanilla",
-          description: "Classic creamy vanilla ice cream made with real vanilla beans",
-          category: "base",
-          price: "6.00",
-          imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?w=800&h=600&fit=crop",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Chocolate",
-          description: "Rich and decadent chocolate ice cream with deep cocoa flavor",
-          category: "base",
-          price: "6.00",
-          imageUrl: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=800&h=600&fit=crop",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Strawberry",
-          description: "Fresh strawberry ice cream with real fruit pieces",
-          category: "base",
-          price: "6.50",
-          imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?w=800&h=600&fit=crop",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Pistachio",
-          description: "Premium pistachio ice cream with roasted nuts",
-          category: "base",
-          price: "7.00",
-          imageUrl: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&h=600&fit=crop",
-          isActive: true,
-          isPremium: true,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Cookies & Cream",
-          description: "Vanilla ice cream loaded with chocolate cookie pieces",
-          category: "base",
-          price: "6.50",
-          imageUrl: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=800&h=600&fit=crop",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Mint Chocolate Chip",
-          description: "Refreshing mint ice cream with dark chocolate chips",
-          category: "base",
-          price: "6.50",
-          imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?w=800&h=600&fit=crop",
-          isActive: true,
-          isPremium: false,
-        },
-        // Sauces for Spaghetti menu
-        {
-          menuId: spaghettiMenu.id,
-          name: "White Chocolate",
-          description: "Creamy white chocolate drizzle",
-          category: "sauce",
-          price: "1.50",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Strawberry Puree",
-          description: "Fresh strawberry sauce",
-          category: "sauce",
-          price: "1.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Salted Caramel",
-          description: "Sweet and salty caramel",
-          category: "sauce",
-          price: "1.50",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Hot Fudge",
-          description: "Rich chocolate fudge sauce",
-          category: "sauce",
-          price: "1.50",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        // Toppings for Spaghetti menu
-        {
-          menuId: spaghettiMenu.id,
-          name: "Shredded Coconut",
-          description: "Fresh coconut flakes",
-          category: "topping",
-          price: "0.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "M&Ms",
-          description: "Colorful chocolate candies",
-          category: "topping",
-          price: "0.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Swedish Fish",
-          description: "Chewy fish-shaped candy",
-          category: "topping",
-          price: "0.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Almonds",
-          description: "Roasted almond pieces",
-          category: "topping",
-          price: "0.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Rainbow Sprinkles",
-          description: "Colorful sugar sprinkles",
-          category: "topping",
-          price: "0.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Chocolate Chips",
-          description: "Mini chocolate chips",
-          category: "topping",
-          price: "0.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: false,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Ferrero Rocher",
-          description: "Premium chocolate hazelnut candy",
-          category: "topping",
-          price: "1.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: true,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Fresh Berries",
-          description: "Seasonal fresh berries",
-          category: "topping",
-          price: "1.50",
-          imageUrl: "",
-          isActive: true,
-          isPremium: true,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Macarons",
-          description: "French macarons",
-          category: "topping",
-          price: "2.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: true,
-        },
-        {
-          menuId: spaghettiMenu.id,
-          name: "Gold Flakes",
-          description: "Edible gold flakes",
-          category: "topping",
-          price: "3.00",
-          imageUrl: "",
-          isActive: true,
-          isPremium: true,
-        },
-      ];
-
-      for (const item of sampleItems) {
-        await storage.createMenuItem(item);
-      }
+      console.log("✓ Sample data already exists, skipping initialization");
     }
   } catch (error) {
-    console.error("Error initializing sample data:", error);
+    console.log("✓ Sample data already exists or failed to initialize:", error);
   }
 }

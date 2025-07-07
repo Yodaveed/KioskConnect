@@ -1,9 +1,23 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// API Response interface for consistent backend responses
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  details?: any;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    try {
+      const errorData: ApiResponse = await res.json();
+      throw new Error(errorData.error || `${res.status}: ${res.statusText}`);
+    } catch (parseError) {
+      const text = (await res.text()) || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    }
   }
 }
 
@@ -11,7 +25,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<any> {
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -20,7 +34,12 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res;
+  
+  // Handle the new API response format
+  const responseData: ApiResponse = await res.json();
+  
+  // For backward compatibility, return just the data if it exists
+  return responseData.data !== undefined ? responseData.data : responseData;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -38,7 +57,12 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    // Handle the new API response format
+    const responseData: ApiResponse = await res.json();
+    
+    // For backward compatibility, return just the data if it exists
+    return responseData.data !== undefined ? responseData.data : responseData;
   };
 
 export const queryClient = new QueryClient({
