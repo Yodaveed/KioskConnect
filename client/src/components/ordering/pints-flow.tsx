@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, ShoppingCart, Check } from "lucide-react";
+import { Plus, Minus, ShoppingCart, Check, ArrowRight } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -25,11 +25,8 @@ export default function PintsFlow() {
   const { data: pints = [], isLoading } = useQuery({
     queryKey: ["/api/menu/flavor", selectedMenuId],
     queryFn: () => fetch(`/api/menu/flavor?menuId=${selectedMenuId}`).then(res => res.json()),
-    enabled: !!selectedMenuId, // Only run query when we have a menu ID
+    enabled: !!selectedMenuId,
   });
-
-  // Component state tracking
-  const pintsCount = Object.values(selectedPints).reduce((sum, qty) => sum + qty, 0);
 
   const handleQuantityChange = (pintId: number, delta: number) => {
     setSelections(prev => {
@@ -96,6 +93,7 @@ export default function PintsFlow() {
       total: getTotalPrice()
     };
     localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
+    
     setStep(4); // Go to confirmation
   };
 
@@ -128,13 +126,31 @@ export default function PintsFlow() {
       
       toast({
         title: "Group Cart Created!",
-        description: `Your order has been added to cart "${newCartId}". Share this ID with your group.`
+        description: `Your pints order has been added to cart "${newCartId}".`
       });
+      
+      // Reset selections
+      setSelections({});
+    } else {
+      // Add to existing cart
+      const customerNameElement = document.querySelector('[data-customer-name]');
+      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+      
+      addItem({
+        customerName,
+        menuType: "Pints",
+        orderData: customOrder,
+        totalPrice: getTotalPrice()
+      });
+      
+      toast({
+        title: "Added to Cart!",
+        description: "Your pints order has been added to the group cart."
+      });
+      
+      // Reset selections
+      setSelections({});
     }
-    
-    // Reset order and go back to home
-    resetOrder();
-    setLocation('/');
   };
 
   if (isLoading) {
@@ -158,13 +174,13 @@ export default function PintsFlow() {
     );
   }
 
-  if (pints.length === 0 && !isLoading) {
+  if (pints.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No pints available for this menu</p>
-          <Button onClick={() => setStep(0)} variant="outline">
-            Go to Menu Selection
+          <Button onClick={() => resetOrder() && setLocation('/')} variant="outline">
+            Back to Menu Selection
           </Button>
         </div>
       </div>
@@ -175,7 +191,7 @@ export default function PintsFlow() {
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-dark-slate mb-2">Ice Cream Pints</h1>
-        <p className="text-gray-600">Take home your favorite flavors</p>
+        <p className="text-gray-600 text-lg">Take home your favorite flavors</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -245,53 +261,90 @@ export default function PintsFlow() {
         })}
       </div>
 
-      {/* Cart Summary */}
+      {/* Order Summary */}
       {getTotalItems() > 0 && (
         <Card className="mt-8 border-primary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              Cart Summary
+              Order Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {Object.entries(selections).map(([pintId, qty]) => {
                 const pint = (pints as MenuItem[]).find(p => p.id === Number(pintId));
-                if (!pint) return null;
+                if (!pint || qty === 0) return null;
                 
                 return (
                   <div key={pintId} className="flex justify-between items-center">
-                    <span>{pint.name} × {qty}</span>
-                    <span>${(parseFloat(pint.price.toString()) * qty).toFixed(2)}</span>
+                    <div>
+                      <span className="font-medium">{pint.name}</span>
+                      <span className="text-gray-600 ml-2">x{qty}</span>
+                    </div>
+                    <div className="font-bold">
+                      ${(parseFloat(pint.price.toString()) * qty).toFixed(2)}
+                    </div>
                   </div>
                 );
               })}
+              
               <Separator />
-              <div className="flex justify-between items-center font-bold text-lg">
+              
+              <div className="flex justify-between items-center text-xl font-bold">
                 <span>Total ({getTotalItems()} items)</span>
                 <span>${getTotalPrice().toFixed(2)}</span>
               </div>
             </div>
-            
-            <div className="mt-6 space-y-3">
-              <Button 
-                className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg transform hover:scale-105 transition-all"
-                onClick={handleSubmitOrder}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Submit Order
-              </Button>
-              <Button 
-                variant="outline"
-                className="w-full"
-                onClick={handleAddToOrder}
-              >
-                Add to This Order
-              </Button>
-            </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Action Buttons */}
+      {getTotalItems() > 0 && (
+        <div className="mt-8 flex gap-4 justify-end">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              resetOrder();
+              setLocation('/');
+            }}
+          >
+            Cancel
+          </Button>
+          
+          <Button 
+            onClick={handleAddToOrder}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            {isActive ? "Add to This Order" : "Start Group Order"}
+          </Button>
+          
+          <Button 
+            onClick={handleSubmitOrder}
+            className="bg-gradient-to-r from-primary to-secondary text-white flex items-center gap-2"
+          >
+            {isActive ? "Submit Cart" : "Submit Order"}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State Message */}
+      {getTotalItems() === 0 && (
+        <div className="mt-8 text-center">
+          <p className="text-gray-600 mb-4">Select pint quantities to continue</p>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              resetOrder();
+              setLocation('/');
+            }}
+          >
+            Back to Menu Selection
+          </Button>
+        </div>
       )}
     </div>
   );
