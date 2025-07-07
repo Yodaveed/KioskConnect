@@ -170,6 +170,10 @@ export default function PintsFlow() {
       // Reset selections
       setSelections({});
     }
+    
+    // Navigate back to home page to continue ordering
+    resetOrder();
+    setLocation('/');
   };
 
   if (isLoading) {

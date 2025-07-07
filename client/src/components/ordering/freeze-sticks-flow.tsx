@@ -8,6 +8,7 @@ import { Plus, Minus, ArrowRight } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import type { MenuItem } from "@shared/schema";
 
@@ -23,6 +24,7 @@ export default function FreezeSticksFlow() {
   const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
   const { isActive, addItem, setCartId } = useCart();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selection, setSelection] = useState<FreezeStickSelection>({
     size: null,
     flavorQuantities: {},
@@ -356,6 +358,10 @@ export default function FreezeSticksFlow() {
         additionalSauces: 0,
       });
     }
+    
+    // Navigate back to home page to continue ordering
+    resetOrder();
+    setLocation('/');
   };
 
   return (

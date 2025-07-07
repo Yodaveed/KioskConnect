@@ -141,6 +141,8 @@ Changelog:
 - July 07, 2025. Rewrote all API routes with proper validation, async error handling, and standardized response format
 - July 07, 2025. Completely redesigned admin components with cleaner UX, search/filter functionality, and better state management
 - July 07, 2025. Enhanced admin dashboard with real-time stats, improved orders management, and streamlined menu item creation
+- July 07, 2025. Fixed all frontend customer ordering API compatibility issues with new backend
+- July 07, 2025. Updated all ordering flows to navigate back to home page after "Add to This Order" action
 ```
 
 ## User Preferences
