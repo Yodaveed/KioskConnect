@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OrderConfirmation() {
@@ -12,7 +12,21 @@ export default function OrderConfirmation() {
   const { cartId, isActive, setCartId, addItem } = useCart();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [autoRedirect, setAutoRedirect] = useState(true);
   const { toast } = useToast();
+
+  // Auto redirect countdown
+  useEffect(() => {
+    if (autoRedirect && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (autoRedirect && countdown === 0) {
+      handleStartNewOrder();
+    }
+  }, [countdown, autoRedirect]);
 
   const generateFriendlyCartId = () => {
     const adjectives = ['Fresh', 'Sweet', 'Cool', 'Tasty', 'Happy', 'Quick', 'Sunny', 'Smooth'];
@@ -26,6 +40,10 @@ export default function OrderConfirmation() {
   const handleStartNewOrder = () => {
     resetOrder();
     setLocation('/');
+  };
+
+  const cancelAutoRedirect = () => {
+    setAutoRedirect(false);
   };
 
   const handleAddToThisOrder = () => {
@@ -101,6 +119,23 @@ export default function OrderConfirmation() {
           </div>
           <h2 className="text-3xl font-bold text-dark-slate mb-4">Thank You!</h2>
           <p className="text-gray-600 text-lg mb-6">Your order is being prepared</p>
+          
+          {/* Auto-redirect notification */}
+          {autoRedirect && countdown > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-blue-800 text-sm">
+                Returning to menu in {countdown} seconds...
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={cancelAutoRedirect}
+                className="text-blue-600 hover:text-blue-800 mt-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
           
           {orderNumber && (
             <div className="bg-gray-50 rounded-lg p-4 mb-6">

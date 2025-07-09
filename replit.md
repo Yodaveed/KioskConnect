@@ -143,6 +143,7 @@ Changelog:
 - July 07, 2025. Enhanced admin dashboard with real-time stats, improved orders management, and streamlined menu item creation
 - July 07, 2025. Fixed all frontend customer ordering API compatibility issues with new backend
 - July 07, 2025. Updated all ordering flows to navigate back to home page after "Add to This Order" action
+- July 07, 2025. Added automatic 5-second redirect to home page after order completion with cancellation option
 ```
 
 ## User Preferences
