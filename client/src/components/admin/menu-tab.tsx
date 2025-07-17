@@ -17,6 +17,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MenuItem, Menu } from "@shared/schema";
+import ImageUpload from "@/components/ui/image-upload";
 
 const menuItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -71,7 +72,26 @@ export default function MenuTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MenuItemForm) => {
-      return await apiRequest("POST", "/api/menu", data);
+      const formData = new FormData();
+      
+      // Append all form fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+      
+      const response = await fetch("/api/menu", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create menu item");
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -94,7 +114,26 @@ export default function MenuTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuItemForm }) => {
-      return await apiRequest("PUT", `/api/menu/${id}`, data);
+      const formData = new FormData();
+      
+      // Append all form fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+      
+      const response = await fetch(`/api/menu/${id}`, {
+        method: "PUT",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update menu item");
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -318,9 +357,12 @@ export default function MenuTab() {
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Image URL (optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} />
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          disabled={createMutation.isPending || updateMutation.isPending}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

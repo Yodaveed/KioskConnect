@@ -12,8 +12,16 @@ import {
   errorResponse,
   globalErrorHandler 
 } from "./middleware";
+import { upload, deleteUploadedFile, getFileUrl } from "./upload";
+import path from 'path';
+import express from 'express';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ==================== STATIC FILE SERVING ====================
+  
+  // Serve uploaded files
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
   // ==================== MENU TYPE ROUTES ====================
   
   // GET /api/menus - Get all menus
@@ -72,9 +80,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menu - Create new menu item
   app.post("/api/menu", 
-    validateBody(insertMenuItemSchema),
+    upload.single('image'),
     asyncHandler(async (req, res) => {
-      const menuItem = await storage.createMenuItem(req.body);
+      let menuItemData = req.body;
+      
+      // Handle uploaded image
+      if (req.file) {
+        menuItemData.imageUrl = getFileUrl(req.file.filename);
+      }
+      
+      // Parse JSON fields if they come as strings (common with multipart/form-data)
+      if (typeof menuItemData.menuId === 'string') {
+        menuItemData.menuId = parseInt(menuItemData.menuId);
+      }
+      if (typeof menuItemData.isActive === 'string') {
+        menuItemData.isActive = menuItemData.isActive === 'true';
+      }
+      if (typeof menuItemData.isPremium === 'string') {
+        menuItemData.isPremium = menuItemData.isPremium === 'true';
+      }
+      if (typeof menuItemData.maxQuantity === 'string') {
+        menuItemData.maxQuantity = menuItemData.maxQuantity ? parseInt(menuItemData.maxQuantity) : null;
+      }
+      if (typeof menuItemData.sortOrder === 'string') {
+        menuItemData.sortOrder = menuItemData.sortOrder ? parseInt(menuItemData.sortOrder) : 0;
+      }
+      if (typeof menuItemData.isRequired === 'string') {
+        menuItemData.isRequired = menuItemData.isRequired === 'true';
+      }
+      
+      const validatedData = insertMenuItemSchema.parse(menuItemData);
+      const menuItem = await storage.createMenuItem(validatedData);
       res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
     })
   );
@@ -82,9 +118,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PUT /api/menu/:id - Update menu item
   app.put("/api/menu/:id", 
     validateIdParam,
-    validatePartialBody(insertMenuItemSchema),
+    upload.single('image'),
     asyncHandler(async (req, res) => {
-      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), req.body);
+      let updateData = req.body;
+      
+      // Handle uploaded image
+      if (req.file) {
+        // Delete old image if it exists
+        const existingItem = await storage.getMenuItemById(parseInt(req.params.id));
+        if (existingItem && existingItem.imageUrl && existingItem.imageUrl.startsWith('/uploads/')) {
+          const oldFilename = path.basename(existingItem.imageUrl);
+          await deleteUploadedFile(oldFilename);
+        }
+        
+        updateData.imageUrl = getFileUrl(req.file.filename);
+      }
+      
+      // Parse JSON fields if they come as strings (common with multipart/form-data)
+      if (typeof updateData.menuId === 'string') {
+        updateData.menuId = parseInt(updateData.menuId);
+      }
+      if (typeof updateData.isActive === 'string') {
+        updateData.isActive = updateData.isActive === 'true';
+      }
+      if (typeof updateData.isPremium === 'string') {
+        updateData.isPremium = updateData.isPremium === 'true';
+      }
+      if (typeof updateData.maxQuantity === 'string') {
+        updateData.maxQuantity = updateData.maxQuantity ? parseInt(updateData.maxQuantity) : null;
+      }
+      if (typeof updateData.sortOrder === 'string') {
+        updateData.sortOrder = updateData.sortOrder ? parseInt(updateData.sortOrder) : 0;
+      }
+      if (typeof updateData.isRequired === 'string') {
+        updateData.isRequired = updateData.isRequired === 'true';
+      }
+      
+      const validatedData = insertMenuItemSchema.partial().parse(updateData);
+      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData);
       res.json(successResponse(menuItem, "Menu item updated successfully"));
     })
   );
@@ -140,8 +211,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/menu-items/:id", 
     validateIdParam,
     asyncHandler(async (req, res) => {
+      // Get menu item to delete associated image file
+      const menuItem = await storage.getMenuItemById(parseInt(req.params.id));
+      if (menuItem && menuItem.imageUrl && menuItem.imageUrl.startsWith('/uploads/')) {
+        const filename = path.basename(menuItem.imageUrl);
+        await deleteUploadedFile(filename);
+      }
+      
       await storage.deleteMenuItem(parseInt(req.params.id));
       res.json(successResponse(null, "Menu item deleted successfully"));
+    })
+  );
+
+  // ==================== FILE UPLOAD ROUTES ====================
+
+  // POST /api/upload/menu-item-image - Upload menu item image
+  app.post("/api/upload/menu-item-image", 
+    (req, res, next) => {
+      upload.single('image')(req, res, (err) => {
+        if (err) {
+          return res.status(400).json(errorResponse(err.message));
+        }
+        next();
+      });
+    },
+    asyncHandler(async (req, res) => {
+      if (!req.file) {
+        return res.status(400).json(errorResponse("No image file provided"));
+      }
+      
+      const imageUrl = getFileUrl(req.file.filename);
+      res.json(successResponse({ 
+        filename: req.file.filename,
+        url: imageUrl,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      }, "Image uploaded successfully"));
+    })
+  );
+
+  // DELETE /api/upload/:filename - Delete uploaded image
+  app.delete("/api/upload/:filename", 
+    asyncHandler(async (req, res) => {
+      const { filename } = req.params;
+      await deleteUploadedFile(filename);
+      res.json(successResponse(null, "Image deleted successfully"));
     })
   );
 

@@ -135,6 +135,15 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async getMenuItemById(id: number): Promise<MenuItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, id))
+      .limit(1);
+    return item;
+  }
+
   async deleteMenuItem(id: number): Promise<void> {
     await db.update(menuItems).set({ isActive: false }).where(eq(menuItems.id, id));
   }

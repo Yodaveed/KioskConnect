@@ -144,6 +144,12 @@ Changelog:
 - July 07, 2025. Fixed all frontend customer ordering API compatibility issues with new backend
 - July 07, 2025. Updated all ordering flows to navigate back to home page after "Add to This Order" action
 - July 07, 2025. Added automatic 5-second redirect to home page after order completion with cancellation option
+- July 17, 2025. Implemented comprehensive image upload functionality for menu items
+- July 17, 2025. Added multer-based file upload system with validation and error handling
+- July 17, 2025. Created ImageUpload component for admin interface with drag-and-drop support
+- July 17, 2025. Added automatic image cleanup when menu items are deleted or updated
+- July 17, 2025. Supports JPEG, PNG, GIF, WebP, and SVG images with 5MB file size limit
+- July 17, 2025. Images stored in /uploads directory and served via Express static middleware
 ```
 
 ## User Preferences
