@@ -89,10 +89,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         menuItemData.imageUrl = getFileUrl(req.file.filename);
       }
       
-      // Parse JSON fields if they come as strings (common with multipart/form-data)
-      if (typeof menuItemData.menuId === 'string') {
-        menuItemData.menuId = parseInt(menuItemData.menuId);
+      // Extract menu IDs (for multi-menu assignment)
+      let menuIds = [];
+      if (menuItemData.menuId) {
+        if (typeof menuItemData.menuId === 'string') {
+          menuIds = [parseInt(menuItemData.menuId)];
+        } else if (Array.isArray(menuItemData.menuId)) {
+          menuIds = menuItemData.menuId.map(id => parseInt(id));
+        }
       }
+      if (menuItemData.menuIds) {
+        if (typeof menuItemData.menuIds === 'string') {
+          menuIds = JSON.parse(menuItemData.menuIds);
+        } else if (Array.isArray(menuItemData.menuIds)) {
+          menuIds = menuItemData.menuIds;
+        }
+      }
+      
+      // Remove menuId and menuIds from the data as they're not part of the schema anymore
+      delete menuItemData.menuId;
+      delete menuItemData.menuIds;
+      
+      // Parse JSON fields if they come as strings (common with multipart/form-data)
       if (typeof menuItemData.isActive === 'string') {
         menuItemData.isActive = menuItemData.isActive === 'true';
       }
@@ -110,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const validatedData = insertMenuItemSchema.parse(menuItemData);
-      const menuItem = await storage.createMenuItem(validatedData);
+      const menuItem = await storage.createMenuItem(validatedData, menuIds);
       res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
     })
   );
@@ -134,10 +152,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.imageUrl = getFileUrl(req.file.filename);
       }
       
+      // Remove menuId and menuIds from the data as they're not part of the schema anymore
+      delete updateData.menuId;
+      delete updateData.menuIds;
+      
       // Parse JSON fields if they come as strings (common with multipart/form-data)
-      if (typeof updateData.menuId === 'string') {
-        updateData.menuId = parseInt(updateData.menuId);
-      }
       if (typeof updateData.isActive === 'string') {
         updateData.isActive = updateData.isActive === 'true';
       }
@@ -179,6 +198,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  // ==================== MENU ITEM ASSIGNMENTS ====================
+
+  // GET /api/menu-items/:id/menus - Get menus for a menu item
+  app.get("/api/menu-items/:id/menus", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const menus = await storage.getMenuItemMenus(parseInt(req.params.id));
+      res.json(successResponse(menus));
+    })
+  );
+
+  // POST /api/menu-items/:id/menus - Assign menu item to multiple menus
+  app.post("/api/menu-items/:id/menus", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const { menuIds } = req.body;
+      if (!Array.isArray(menuIds)) {
+        return res.status(400).json(errorResponse("menuIds must be an array"));
+      }
+      
+      await storage.assignMenuItemToMenus(parseInt(req.params.id), menuIds);
+      res.json(successResponse(null, "Menu item assigned to menus successfully"));
+    })
+  );
+
+  // DELETE /api/menu-items/:id/menus - Remove menu item from multiple menus
+  app.delete("/api/menu-items/:id/menus", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const { menuIds } = req.body;
+      if (!Array.isArray(menuIds)) {
+        return res.status(400).json(errorResponse("menuIds must be an array"));
+      }
+      
+      await storage.removeMenuItemFromMenus(parseInt(req.params.id), menuIds);
+      res.json(successResponse(null, "Menu item removed from menus successfully"));
+    })
+  );
+
+  // GET /api/menu-items-with-menus - Get all menu items with their assigned menus
+  app.get("/api/menu-items-with-menus", 
+    asyncHandler(async (req, res) => {
+      const menuItemsWithMenus = await storage.getMenuItemsWithMenus();
+      res.json(successResponse(menuItemsWithMenus));
+    })
+  );
+
   // ==================== MENU ITEMS ROUTES (ALIAS) ====================
   
   // GET /api/menu-items - Get all menu items
@@ -192,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/menu-items", 
     validateBody(insertMenuItemSchema),
     asyncHandler(async (req, res) => {
-      const menuItem = await storage.createMenuItem(req.body);
+      const menuItem = await storage.createMenuItem(req.body, []); // Empty array for backward compatibility
       res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
     })
   );

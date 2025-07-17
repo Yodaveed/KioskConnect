@@ -1,6 +1,6 @@
-import { users, menus, menuItems, orders, orderItems, carts, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Cart, type InsertCart } from "@shared/schema";
+import { users, menus, menuItems, menuItemsToMenus, orders, orderItems, carts, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type MenuItemToMenu, type InsertMenuItemToMenu, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Cart, type InsertCart } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -18,9 +18,15 @@ export interface IStorage {
   // Menu item methods
   getMenuItems(menuId?: number): Promise<MenuItem[]>;
   getMenuItemsByCategory(category: string, menuId?: number): Promise<MenuItem[]>;
-  createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
+  createMenuItem(item: InsertMenuItem, menuIds: number[]): Promise<MenuItem>;
   updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem>;
   deleteMenuItem(id: number): Promise<void>;
+  
+  // Menu item to menu assignment methods
+  assignMenuItemToMenus(menuItemId: number, menuIds: number[]): Promise<void>;
+  removeMenuItemFromMenus(menuItemId: number, menuIds: number[]): Promise<void>;
+  getMenuItemMenus(menuItemId: number): Promise<Menu[]>;
+  getMenuItemsWithMenus(): Promise<(MenuItem & { menus: Menu[] })[]>;
   
   // Order methods
   createOrder(order: InsertOrder): Promise<Order>;
@@ -100,29 +106,64 @@ export class DatabaseStorage implements IStorage {
 
   async getMenuItems(menuId?: number): Promise<MenuItem[]> {
     if (menuId) {
-      return await db.select().from(menuItems).where(
-        and(eq(menuItems.menuId, menuId), eq(menuItems.isActive, true))
-      );
+      // Get menu items for a specific menu through the junction table
+      const menuItemIds = await db
+        .select({ menuItemId: menuItemsToMenus.menuItemId })
+        .from(menuItemsToMenus)
+        .where(eq(menuItemsToMenus.menuId, menuId));
+      
+      if (menuItemIds.length === 0) {
+        return [];
+      }
+      
+      return await db
+        .select()
+        .from(menuItems)
+        .where(and(
+          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId)),
+          eq(menuItems.isActive, true)
+        ));
     }
     return await db.select().from(menuItems).where(eq(menuItems.isActive, true));
   }
 
   async getMenuItemsByCategory(category: string, menuId?: number): Promise<MenuItem[]> {
     if (menuId) {
-      return await db.select().from(menuItems).where(
-        and(eq(menuItems.category, category), eq(menuItems.menuId, menuId), eq(menuItems.isActive, true))
-      );
+      // Get menu items for a specific menu and category through the junction table
+      const menuItemIds = await db
+        .select({ menuItemId: menuItemsToMenus.menuItemId })
+        .from(menuItemsToMenus)
+        .where(eq(menuItemsToMenus.menuId, menuId));
+      
+      if (menuItemIds.length === 0) {
+        return [];
+      }
+      
+      return await db
+        .select()
+        .from(menuItems)
+        .where(and(
+          eq(menuItems.category, category),
+          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId)),
+          eq(menuItems.isActive, true)
+        ));
     }
     return await db.select().from(menuItems).where(
       and(eq(menuItems.category, category), eq(menuItems.isActive, true))
     );
   }
 
-  async createMenuItem(item: InsertMenuItem): Promise<MenuItem> {
+  async createMenuItem(item: InsertMenuItem, menuIds: number[]): Promise<MenuItem> {
     const [menuItem] = await db
       .insert(menuItems)
       .values(item)
       .returning();
+    
+    // Assign the menu item to the specified menus
+    if (menuIds.length > 0) {
+      await this.assignMenuItemToMenus(menuItem.id, menuIds);
+    }
+    
     return menuItem;
   }
 
@@ -259,6 +300,60 @@ export class DatabaseStorage implements IStorage {
       .where(eq(menuItems.id, itemId))
       .returning();
     return updatedItem;
+  }
+
+  // Menu item to menu assignment methods
+  async assignMenuItemToMenus(menuItemId: number, menuIds: number[]): Promise<void> {
+    if (menuIds.length === 0) return;
+    
+    const assignments = menuIds.map(menuId => ({
+      menuItemId,
+      menuId,
+    }));
+    
+    await db.insert(menuItemsToMenus).values(assignments);
+  }
+
+  async removeMenuItemFromMenus(menuItemId: number, menuIds: number[]): Promise<void> {
+    if (menuIds.length === 0) return;
+    
+    await db.delete(menuItemsToMenus).where(
+      and(
+        eq(menuItemsToMenus.menuItemId, menuItemId),
+        inArray(menuItemsToMenus.menuId, menuIds)
+      )
+    );
+  }
+
+  async getMenuItemMenus(menuItemId: number): Promise<Menu[]> {
+    return await db
+      .select({
+        id: menus.id,
+        name: menus.name,
+        description: menus.description,
+        isActive: menus.isActive,
+        sortOrder: menus.sortOrder,
+        orderingFlow: menus.orderingFlow,
+        flowConfig: menus.flowConfig,
+        pricingRules: menus.pricingRules,
+        createdAt: menus.createdAt,
+      })
+      .from(menus)
+      .innerJoin(menuItemsToMenus, eq(menus.id, menuItemsToMenus.menuId))
+      .where(eq(menuItemsToMenus.menuItemId, menuItemId))
+      .orderBy(menus.sortOrder);
+  }
+
+  async getMenuItemsWithMenus(): Promise<(MenuItem & { menus: Menu[] })[]> {
+    const allMenuItems = await db.select().from(menuItems);
+    const result = [];
+    
+    for (const menuItem of allMenuItems) {
+      const itemMenus = await this.getMenuItemMenus(menuItem.id);
+      result.push({ ...menuItem, menus: itemMenus });
+    }
+    
+    return result;
   }
 }
 

@@ -39,6 +39,7 @@ IC Pasta is a responsive web-based kiosk ordering application optimized for tabl
 #### Database Schema
 - **Users**: Admin authentication and authorization
 - **Menu Items**: Product catalog with categories, pricing, and availability
+- **Menu Items to Menus**: Junction table for many-to-many relationship between menu items and menus
 - **Orders**: Order records with JSON-stored item details
 - **Order Items**: Detailed order line items with modifiers
 
@@ -150,6 +151,12 @@ Changelog:
 - July 17, 2025. Added automatic image cleanup when menu items are deleted or updated
 - July 17, 2025. Supports JPEG, PNG, GIF, WebP, and SVG images with 5MB file size limit
 - July 17, 2025. Images stored in /uploads directory and served via Express static middleware
+- July 17, 2025. Implemented many-to-many relationship for menu items and menus
+- July 17, 2025. Created junction table (menu_items_to_menus) for multi-menu assignments
+- July 17, 2025. Updated database schema to remove single menuId from menu_items table
+- July 17, 2025. Added comprehensive API endpoints for menu item assignments
+- July 17, 2025. Menu items can now be assigned to multiple menus simultaneously
+- July 17, 2025. Backward compatibility maintained with existing menu filtering logic
 ```
 
 ## User Preferences

@@ -24,7 +24,6 @@ export const menus = pgTable("menus", {
 
 export const menuItems = pgTable("menu_items", {
   id: serial("id").primaryKey(),
-  menuId: integer("menu_id").references(() => menus.id),
   name: text("name").notNull(),
   description: text("description"),
   category: text("category").notNull(), // 'base', 'sauce', 'topping', 'size', 'flavor', 'addon'
@@ -36,6 +35,14 @@ export const menuItems = pgTable("menu_items", {
   maxQuantity: integer("max_quantity"), // For items like "pick 3 flavors"
   isRequired: boolean("is_required").default(false), // For required selections
   sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Junction table for many-to-many relationship between menu items and menus
+export const menuItemsToMenus = pgTable("menu_items_to_menus", {
+  id: serial("id").primaryKey(),
+  menuItemId: integer("menu_item_id").references(() => menuItems.id),
+  menuId: integer("menu_id").references(() => menus.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -70,7 +77,23 @@ export const orderItems = pgTable("order_items", {
 
 // Relations
 export const menusRelations = relations(menus, ({ many }) => ({
-  menuItems: many(menuItems),
+  menuItemsToMenus: many(menuItemsToMenus),
+}));
+
+export const menuItemsRelations = relations(menuItems, ({ many }) => ({
+  orderItems: many(orderItems),
+  menuItemsToMenus: many(menuItemsToMenus),
+}));
+
+export const menuItemsToMenusRelations = relations(menuItemsToMenus, ({ one }) => ({
+  menuItem: one(menuItems, {
+    fields: [menuItemsToMenus.menuItemId],
+    references: [menuItems.id],
+  }),
+  menu: one(menus, {
+    fields: [menuItemsToMenus.menuId],
+    references: [menus.id],
+  }),
 }));
 
 export const ordersRelations = relations(orders, ({ many }) => ({
@@ -85,14 +108,6 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   menuItem: one(menuItems, {
     fields: [orderItems.menuItemId],
     references: [menuItems.id],
-  }),
-}));
-
-export const menuItemsRelations = relations(menuItems, ({ many, one }) => ({
-  orderItems: many(orderItems),
-  menu: one(menus, {
-    fields: [menuItems.menuId],
-    references: [menus.id],
   }),
 }));
 
@@ -114,7 +129,6 @@ export const insertMenuSchema = createInsertSchema(menus).pick({
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
-  menuId: true,
   name: true,
   description: true,
   category: true,
@@ -126,6 +140,11 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
   maxQuantity: true,
   isRequired: true,
   sortOrder: true,
+});
+
+export const insertMenuItemToMenuSchema = createInsertSchema(menuItemsToMenus).pick({
+  menuItemId: true,
+  menuId: true,
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -164,3 +183,5 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type Cart = typeof carts.$inferSelect;
 export type InsertCart = z.infer<typeof insertCartSchema>;
+export type MenuItemToMenu = typeof menuItemsToMenus.$inferSelect;
+export type InsertMenuItemToMenu = z.infer<typeof insertMenuItemToMenuSchema>;
