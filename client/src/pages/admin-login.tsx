@@ -33,14 +33,15 @@ export default function AdminLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      return await apiRequest("POST", "/api/auth/login", data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: "Login successful",
         description: "Welcome to the admin dashboard",
       });
+      // Store admin session or token if needed
+      localStorage.setItem('adminAuth', 'true');
       setLocation("/admin/dashboard");
     },
     onError: (error: any) => {

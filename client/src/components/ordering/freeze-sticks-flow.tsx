@@ -58,7 +58,9 @@ export default function FreezeSticksFlow() {
 
   const getMaxSticks = () => {
     if (!selection.size) return 0;
-    return selection.size.maxQuantity || 1;
+    const baseMax = selection.size.maxQuantity || 1;
+    // Add additional sticks to the max allowed for flavor selection
+    return baseMax + selection.additionalSticks;
   };
 
   const getTotalFlavorSticks = () => {
@@ -104,7 +106,12 @@ export default function FreezeSticksFlow() {
 
   const handleAdditionalSticksChange = (delta: number) => {
     const newAmount = Math.max(0, selection.additionalSticks + delta);
-    setSelection(prev => ({ ...prev, additionalSticks: newAmount }));
+    setSelection(prev => ({ 
+      ...prev, 
+      additionalSticks: newAmount,
+      // Reset flavor quantities when additional sticks change to avoid exceeding new max
+      flavorQuantities: {}
+    }));
   };
 
   const handleAdditionalSaucesChange = (delta: number) => {
@@ -510,6 +517,11 @@ export default function FreezeSticksFlow() {
                 <div>
                   <h3 className="font-medium">Additional Freeze Sticks</h3>
                   <p className="text-sm text-gray-600">Add extra freeze sticks for $2.00 each</p>
+                  {selection.additionalSticks > 0 && (
+                    <p className="text-sm text-primary font-medium mt-1">
+                      ✓ You can now select {getMaxSticks()} flavors total
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

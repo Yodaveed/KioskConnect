@@ -15,6 +15,14 @@ type TabType = "dashboard" | "menu-types" | "menu" | "orders" | "qr" | "sold-out
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [, setLocation] = useLocation();
+  
+  // Simple admin authentication check
+  const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
+  
+  if (!isAuthenticated) {
+    setLocation("/admin");
+    return null;
+  }
 
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -63,7 +71,10 @@ export default function AdminDashboard() {
               View Kiosk
             </Button>
             <Button
-              onClick={() => setLocation("/")}
+              onClick={() => {
+                localStorage.removeItem('adminAuth');
+                setLocation("/");
+              }}
               variant="outline"
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
             >
