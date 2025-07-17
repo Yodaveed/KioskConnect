@@ -18,6 +18,7 @@ export const menus = pgTable("menus", {
   sortOrder: integer("sort_order").default(0),
   orderingFlow: text("ordering_flow").default("three-step"), // "three-step", "single-page", "custom"
   flowConfig: jsonb("flow_config"), // JSON config for custom flows
+  pricingRules: jsonb("pricing_rules").default('{}'), // Pricing rules for different categories
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -109,6 +110,7 @@ export const insertMenuSchema = createInsertSchema(menus).pick({
   sortOrder: true,
   orderingFlow: true,
   flowConfig: true,
+  pricingRules: true,
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({

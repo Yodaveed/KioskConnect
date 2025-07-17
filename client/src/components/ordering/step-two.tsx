@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useOrder } from "@/hooks/use-order";
-import type { MenuItem } from "@shared/schema";
+import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepTwo() {
   const { selectSauce, setStep, order, selectedMenuId } = useOrder();
@@ -13,6 +13,30 @@ export default function StepTwo() {
     queryKey: ['/api/menu/sauce', selectedMenuId],
     enabled: !!selectedMenuId,
   });
+
+  const { data: currentMenu } = useQuery({
+    queryKey: ['/api/menus'],
+    select: (menus: Menu[]) => menus.find(menu => menu.id === selectedMenuId),
+  });
+
+  const getPricingRules = () => {
+    return currentMenu?.pricingRules || {};
+  };
+
+  const getSelectedSauceCount = () => {
+    return order.sauce ? 1 : 0;
+  };
+
+  const getSaucePrice = (item: MenuItem, selectedCount: number) => {
+    const rules = getPricingRules();
+    const sauceRules = rules.sauce || { freeLimit: 2, additionalPrice: 0.25 };
+    
+    const basePrice = parseFloat(item.price.toString());
+    if (selectedCount > sauceRules.freeLimit) {
+      return basePrice + (sauceRules.additionalPrice * (selectedCount - sauceRules.freeLimit));
+    }
+    return basePrice;
+  };
 
   const handleSelectSauce = (item: MenuItem) => {
     // Don't allow selection of sold-out items
@@ -49,7 +73,7 @@ export default function StepTwo() {
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-dark-slate mb-2">Choose Your Sauce</h2>
-        <p className="text-gray-600 text-lg">Select a delicious sauce to complement your base, or skip to continue</p>
+        <p className="text-gray-600 text-lg">Select up to 2 sauces (additional sauces +$0.25 each)</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,12 +122,18 @@ export default function StepTwo() {
               
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-primary font-bold text-lg">+${parseFloat(item.price.toString()).toFixed(2)}</div>
-                {item.isPremium && (
-                  <Badge variant="outline" className="text-accent border-accent">
-                    Premium
+                {getSelectedSauceCount() >= 2 && (
+                  <Badge variant="outline" className="text-xs">
+                    +$0.25 after 2nd
                   </Badge>
                 )}
               </div>
+              
+              {item.isPremium && (
+                <Badge variant="outline" className="text-accent border-accent">
+                  Premium
+                </Badge>
+              )}
               
               {order.sauce?.id === item.id && (
                 <div className="mt-2">

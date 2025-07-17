@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useOrder } from "@/hooks/use-order";
-import type { MenuItem } from "@shared/schema";
+import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepOne() {
   const { selectBase, setStep, order, selectedMenuId } = useOrder();
@@ -13,6 +13,30 @@ export default function StepOne() {
     queryKey: ['/api/menu/base', selectedMenuId],
     enabled: !!selectedMenuId,
   });
+
+  const { data: currentMenu } = useQuery({
+    queryKey: ['/api/menus'],
+    select: (menus: Menu[]) => menus.find(menu => menu.id === selectedMenuId),
+  });
+
+  const getPricingRules = () => {
+    return currentMenu?.pricingRules || {};
+  };
+
+  const getBasePrice = (item: MenuItem, selectedCount: number) => {
+    const rules = getPricingRules();
+    const baseRules = rules.base || { freeLimit: 1, additionalPrice: 1.00 };
+    
+    const basePrice = parseFloat(item.price.toString());
+    if (selectedCount > baseRules.freeLimit) {
+      return basePrice + (baseRules.additionalPrice * (selectedCount - baseRules.freeLimit));
+    }
+    return basePrice;
+  };
+
+  const getSelectedBaseCount = () => {
+    return order.base ? 1 : 0;
+  };
 
   const handleSelectBase = (item: MenuItem) => {
     // Don't allow selection of sold-out items
@@ -100,6 +124,12 @@ export default function StepOne() {
                   </Badge>
                 )}
               </div>
+              
+              {getSelectedBaseCount() > 0 && (
+                <div className="text-sm text-gray-600 mb-2">
+                  + $1.00 for 2nd flavor
+                </div>
+              )}
               
               {order.base?.id === item.id && (
                 <div className="mt-2">

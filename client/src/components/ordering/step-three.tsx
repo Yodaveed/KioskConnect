@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useOrder } from "@/hooks/use-order";
-import type { MenuItem } from "@shared/schema";
+import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepThree() {
   const { toggleTopping, setStep, order, selectedMenuId } = useOrder();
@@ -14,6 +14,30 @@ export default function StepThree() {
     queryKey: ['/api/menu/topping', selectedMenuId],
     enabled: !!selectedMenuId,
   });
+
+  const { data: currentMenu } = useQuery({
+    queryKey: ['/api/menus'],
+    select: (menus: Menu[]) => menus.find(menu => menu.id === selectedMenuId),
+  });
+
+  const getPricingRules = () => {
+    return currentMenu?.pricingRules || {};
+  };
+
+  const getSelectedToppingsCount = () => {
+    return order.toppings.length;
+  };
+
+  const getToppingPrice = (item: MenuItem, selectedCount: number) => {
+    const rules = getPricingRules();
+    const toppingRules = rules.topping || { freeLimit: 4, additionalPrice: 0.25 };
+    
+    const basePrice = parseFloat(item.price.toString());
+    if (selectedCount > toppingRules.freeLimit) {
+      return basePrice + (toppingRules.additionalPrice * (selectedCount - toppingRules.freeLimit));
+    }
+    return basePrice;
+  };
 
   const handleToggleTopping = (item: MenuItem) => {
     // Don't allow selection of sold-out items
@@ -53,7 +77,7 @@ export default function StepThree() {
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-dark-slate mb-2">Choose Your Toppings</h2>
-        <p className="text-gray-600 text-lg">Select your favorite toppings to complete your order, or skip to continue</p>
+        <p className="text-gray-600 text-lg">Select up to 4 toppings (additional toppings +$0.25 each)</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -89,9 +113,16 @@ export default function StepThree() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                    <p className="text-sm font-medium text-primary">
-                      {price > 0 ? `+$${price.toFixed(2)}` : "Included"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-primary">
+                        {price > 0 ? `+$${price.toFixed(2)}` : "Included"}
+                      </p>
+                      {getSelectedToppingsCount() >= 4 && (
+                        <Badge variant="outline" className="text-xs">
+                          +$0.25 after 4th
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
