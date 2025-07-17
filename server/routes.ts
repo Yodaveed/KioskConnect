@@ -152,6 +152,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.imageUrl = getFileUrl(req.file.filename);
       }
       
+      // Extract menu IDs for assignment
+      let menuIds = [];
+      if (updateData.menuIds) {
+        if (typeof updateData.menuIds === 'string') {
+          menuIds = JSON.parse(updateData.menuIds);
+        } else if (Array.isArray(updateData.menuIds)) {
+          menuIds = updateData.menuIds;
+        }
+      }
+      
       // Remove menuId and menuIds from the data as they're not part of the schema anymore
       delete updateData.menuId;
       delete updateData.menuIds;
@@ -174,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const validatedData = insertMenuItemSchema.partial().parse(updateData);
-      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData);
+      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
       res.json(successResponse(menuItem, "Menu item updated successfully"));
     })
   );

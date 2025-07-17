@@ -31,7 +31,7 @@ const menuItemSchema = z.object({
   imageUrl: z.string().optional(),
   isActive: z.boolean().default(true),
   isPremium: z.boolean().default(false),
-  menuId: z.number().min(1, "Menu is required"),
+  menuIds: z.array(z.number()).min(1, "At least one menu must be selected"),
 });
 
 type MenuItemForm = z.infer<typeof menuItemSchema>;
@@ -40,6 +40,7 @@ export default function MenuTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [selectedMenuId, setSelectedMenuId] = useState<number | null>(null);
+  const [selectedMenus, setSelectedMenus] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const { toast } = useToast();
@@ -66,7 +67,7 @@ export default function MenuTab() {
       imageUrl: "",
       isActive: true,
       isPremium: false,
-      menuId: selectedMenuId || 1,
+      menuIds: [],
     },
   });
 
@@ -76,7 +77,10 @@ export default function MenuTab() {
       
       // Append all form fields
       Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (key === 'menuIds') {
+          // Handle menuIds array specially
+          formData.append('menuIds', JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
       });
@@ -118,7 +122,10 @@ export default function MenuTab() {
       
       // Append all form fields
       Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (key === 'menuIds') {
+          // Handle menuIds array specially
+          formData.append('menuIds', JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
       });
@@ -182,18 +189,40 @@ export default function MenuTab() {
     }
   };
 
-  const handleEdit = (item: MenuItem) => {
+  const handleEdit = async (item: MenuItem) => {
     setEditingItem(item);
-    form.reset({
-      name: item.name,
-      description: item.description || "",
-      category: item.category as any,
-      price: item.price.toString(),
-      imageUrl: item.imageUrl || "",
-      isActive: item.isActive,
-      isPremium: item.isPremium,
-      menuId: item.menuId,
-    });
+    
+    // Get current menu assignments for this item
+    try {
+      const assignedMenus = await apiRequest("GET", `/api/menu-items/${item.id}/menus`);
+      const menuIds = assignedMenus.map((menu: Menu) => menu.id);
+      
+      form.reset({
+        name: item.name,
+        description: item.description || "",
+        category: item.category as any,
+        price: item.price.toString(),
+        imageUrl: item.imageUrl || "",
+        isActive: item.isActive,
+        isPremium: item.isPremium,
+        menuIds: menuIds,
+      });
+      setSelectedMenus(menuIds);
+    } catch (error) {
+      console.error("Error loading menu assignments:", error);
+      form.reset({
+        name: item.name,
+        description: item.description || "",
+        category: item.category as any,
+        price: item.price.toString(),
+        imageUrl: item.imageUrl || "",
+        isActive: item.isActive,
+        isPremium: item.isPremium,
+        menuIds: [],
+      });
+      setSelectedMenus([]);
+    }
+    
     setIsDialogOpen(true);
   };
 
@@ -212,9 +241,10 @@ export default function MenuTab() {
       imageUrl: "",
       isActive: true,
       isPremium: false,
-      menuId: selectedMenuId || 1,
+      menuIds: [],
     });
     setEditingItem(null);
+    setSelectedMenus([]);
   };
 
   // Filter menu items based on search term and category
@@ -328,24 +358,47 @@ export default function MenuTab() {
                   />
                   <FormField
                     control={form.control}
-                    name="menuId"
+                    name="menuIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Menu</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select menu" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
+                        <FormLabel>Menus</FormLabel>
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-600">
+                            Select which menus this item should appear in:
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
                             {(menus as Menu[]).map((menu) => (
-                              <SelectItem key={menu.id} value={menu.id.toString()}>
-                                {menu.name}
-                              </SelectItem>
+                              <div key={menu.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`menu-${menu.id}`}
+                                  checked={field.value.includes(menu.id)}
+                                  onChange={(e) => {
+                                    const currentValue = field.value || [];
+                                    if (e.target.checked) {
+                                      field.onChange([...currentValue, menu.id]);
+                                      setSelectedMenus([...currentValue, menu.id]);
+                                    } else {
+                                      const newValue = currentValue.filter(id => id !== menu.id);
+                                      field.onChange(newValue);
+                                      setSelectedMenus(newValue);
+                                    }
+                                  }}
+                                  className="h-4 w-4"
+                                />
+                                <label 
+                                  htmlFor={`menu-${menu.id}`} 
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {menu.name}
+                                </label>
+                                <span className="text-xs text-gray-500">
+                                  ({menu.orderingFlow})
+                                </span>
+                              </div>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </div>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}

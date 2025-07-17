@@ -167,12 +167,24 @@ export class DatabaseStorage implements IStorage {
     return menuItem;
   }
 
-  async updateMenuItem(id: number, item: Partial<InsertMenuItem>): Promise<MenuItem> {
+  async updateMenuItem(id: number, item: Partial<InsertMenuItem>, menuIds?: number[]): Promise<MenuItem> {
     const [updated] = await db
       .update(menuItems)
       .set(item)
       .where(eq(menuItems.id, id))
       .returning();
+    
+    // Update menu assignments if provided
+    if (menuIds !== undefined) {
+      // First, remove all existing assignments
+      await db.delete(menuItemsToMenus).where(eq(menuItemsToMenus.menuItemId, id));
+      
+      // Then add new assignments
+      if (menuIds.length > 0) {
+        await this.assignMenuItemToMenus(id, menuIds);
+      }
+    }
+    
     return updated;
   }
 
