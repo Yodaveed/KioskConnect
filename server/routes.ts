@@ -108,6 +108,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  // ==================== MENU ITEMS ROUTES (ALIAS) ====================
+  
+  // GET /api/menu-items - Get all menu items
+  app.get("/api/menu-items", asyncHandler(async (req, res) => {
+    const { menuId } = req.query;
+    const menuItems = await storage.getMenuItems(menuId ? parseInt(menuId as string) : undefined);
+    res.json(successResponse(menuItems));
+  }));
+
+  // POST /api/menu-items - Create new menu item
+  app.post("/api/menu-items", 
+    validateBody(insertMenuItemSchema),
+    asyncHandler(async (req, res) => {
+      const menuItem = await storage.createMenuItem(req.body);
+      res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
+    })
+  );
+
+  // PUT /api/menu-items/:id - Update menu item
+  app.put("/api/menu-items/:id", 
+    validateIdParam,
+    validatePartialBody(insertMenuItemSchema),
+    asyncHandler(async (req, res) => {
+      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), req.body);
+      res.json(successResponse(menuItem, "Menu item updated successfully"));
+    })
+  );
+
+  // DELETE /api/menu-items/:id - Delete menu item
+  app.delete("/api/menu-items/:id", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      await storage.deleteMenuItem(parseInt(req.params.id));
+      res.json(successResponse(null, "Menu item deleted successfully"));
+    })
+  );
+
   // ==================== ORDER ROUTES ====================
 
   // GET /api/orders - Get all orders

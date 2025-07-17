@@ -24,7 +24,9 @@ const menuItemSchema = z.object({
   category: z.enum(["base", "sauce", "topping", "flavor", "size"], {
     required_error: "Category is required",
   }),
-  price: z.string().min(0, "Price must be positive"),
+  price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    message: "Price must be a valid positive number",
+  }),
   imageUrl: z.string().optional(),
   isActive: z.boolean().default(true),
   isPremium: z.boolean().default(false),
