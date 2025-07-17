@@ -11,16 +11,19 @@ export default function StepThree() {
   const { toggleTopping, setStep, order, selectedMenuId } = useOrder();
 
   const { data: toppingItems = [], isLoading } = useQuery({
-    queryKey: [`/api/menu/topping?menuId=${selectedMenuId}`],
+    queryKey: ['/api/menu/topping', selectedMenuId],
     enabled: !!selectedMenuId,
   });
 
   const handleToggleTopping = (item: MenuItem) => {
+    // Don't allow selection of sold-out items
+    if (item.isSoldOut) return;
+    
     toggleTopping({
       id: item.id,
       name: item.name,
       category: item.category,
-      price: parseFloat(item.price),
+      price: parseFloat(item.price.toString()),
     });
   };
 
@@ -73,6 +76,7 @@ export default function StepThree() {
                   <Checkbox
                     checked={isSelected}
                     onChange={() => handleToggleTopping(item)}
+                    disabled={item.isSoldOut}
                     className="text-primary"
                   />
                   <div className="flex-1">

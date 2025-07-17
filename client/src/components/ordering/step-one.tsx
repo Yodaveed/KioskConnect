@@ -10,16 +10,19 @@ export default function StepOne() {
   const { selectBase, setStep, order, selectedMenuId } = useOrder();
 
   const { data: baseItems = [], isLoading } = useQuery({
-    queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
+    queryKey: ['/api/menu/base', selectedMenuId],
     enabled: !!selectedMenuId,
   });
 
   const handleSelectBase = (item: MenuItem) => {
+    // Don't allow selection of sold-out items
+    if (item.isSoldOut) return;
+    
     selectBase({
       id: item.id,
       name: item.name,
       category: item.category,
-      price: parseFloat(item.price),
+      price: parseFloat(item.price.toString()),
       modifiers: [], // No modifiers for now - keep it simple
     });
   };
@@ -49,7 +52,11 @@ export default function StepOne() {
         {baseItems.map((item: MenuItem) => (
           <Card
             key={item.id}
-            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+            className={`transition-all duration-200 ${
+              item.isSoldOut
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:shadow-lg"
+            } ${
               order.base?.id === item.id
                 ? "border-2 border-primary shadow-lg bg-primary/5"
                 : "border-2 border-transparent hover:border-primary"
@@ -71,6 +78,19 @@ export default function StepOne() {
               
               <h3 className="text-xl font-semibold text-dark-slate mb-2">{item.name}</h3>
               <p className="text-gray-600 text-sm mb-4">{item.description}</p>
+              
+              <div className="flex items-center justify-center gap-2 mb-2">
+                {item.isSoldOut && (
+                  <Badge variant="destructive" className="text-xs">
+                    SOLD OUT
+                  </Badge>
+                )}
+                {item.isPremium && (
+                  <Badge variant="secondary" className="text-xs">
+                    Premium
+                  </Badge>
+                )}
+              </div>
               
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-primary font-bold text-lg">${parseFloat(item.price).toFixed(2)}</div>

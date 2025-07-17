@@ -130,6 +130,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/orders - Create new order
   app.post("/api/orders", asyncHandler(async (req, res) => {
+    // Validate customer name is provided
+    if (!req.body.customerName?.trim()) {
+      return res.status(400).json(errorResponse("Customer name is required"));
+    }
+    
     const orderData = {
       ...req.body,
       orderNumber: storage.generateOrderNumber(),

@@ -10,16 +10,19 @@ export default function StepTwo() {
   const { selectSauce, setStep, order, selectedMenuId } = useOrder();
 
   const { data: sauceItems = [], isLoading } = useQuery({
-    queryKey: [`/api/menu/sauce?menuId=${selectedMenuId}`],
+    queryKey: ['/api/menu/sauce', selectedMenuId],
     enabled: !!selectedMenuId,
   });
 
   const handleSelectSauce = (item: MenuItem) => {
+    // Don't allow selection of sold-out items
+    if (item.isSoldOut) return;
+    
     selectSauce({
       id: item.id,
       name: item.name,
       category: item.category,
-      price: parseFloat(item.price),
+      price: parseFloat(item.price.toString()),
     });
   };
 
@@ -53,7 +56,11 @@ export default function StepTwo() {
         {sauceItems.map((item: MenuItem) => (
           <Card
             key={item.id}
-            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+            className={`transition-all duration-200 ${
+              item.isSoldOut
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:shadow-lg"
+            } ${
               order.sauce?.id === item.id
                 ? "border-2 border-primary shadow-lg bg-primary/5"
                 : "border-2 border-transparent hover:border-primary"
@@ -77,7 +84,20 @@ export default function StepTwo() {
               <p className="text-gray-600 text-sm mb-4">{item.description}</p>
               
               <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="text-primary font-bold text-lg">+${parseFloat(item.price).toFixed(2)}</div>
+                {item.isSoldOut && (
+                  <Badge variant="destructive" className="text-xs">
+                    SOLD OUT
+                  </Badge>
+                )}
+                {item.isPremium && (
+                  <Badge variant="secondary" className="text-xs">
+                    Premium
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="text-primary font-bold text-lg">+${parseFloat(item.price.toString()).toFixed(2)}</div>
                 {item.isPremium && (
                   <Badge variant="outline" className="text-accent border-accent">
                     Premium
