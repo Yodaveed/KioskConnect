@@ -1,4 +1,4 @@
-import { Edit, Check, Send, ArrowRight } from "lucide-react";
+import { Edit, Check, Send, ArrowRight, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -258,11 +258,30 @@ export default function OrderSummary() {
 
           <Separator />
           
+          {/* Subtotal */}
+          <div className="flex justify-between items-center">
+            <span>Subtotal</span>
+            <span>${totalPrice.toFixed(2)}</span>
+          </div>
+          
+          {/* Tax & Fees (showing $0 for transparency) */}
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <span>Tax & Fees</span>
+            <span>$0.00</span>
+          </div>
+          
           {/* Total */}
-          <div className="flex justify-between items-center text-xl font-bold">
+          <div className="flex justify-between items-center text-xl font-bold border-t pt-2 mt-2">
             <span>Total</span>
             <span>${totalPrice.toFixed(2)}</span>
           </div>
+          
+          {/* Error state */}
+          {placeOrderMutation.isError && (
+            <div className="text-red-600 mt-2 p-2 bg-red-50 rounded" role="alert" aria-live="polite">
+              Order submission failed. Please try again or see staff for assistance.
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -273,8 +292,9 @@ export default function OrderSummary() {
             onClick={() => setStep(3)}
             variant="outline"
             className="flex-1"
+            aria-label="Edit order and return to previous step"
           >
-            <Edit className="mr-2 h-4 w-4" />
+            <Edit className="mr-2 h-4 w-4" aria-hidden="true" />
             Edit Order
           </Button>
           
@@ -282,8 +302,9 @@ export default function OrderSummary() {
             <Button
               onClick={handleSubmitCart}
               className="flex-1 bg-green-600 hover:bg-green-700"
+              aria-label={`Submit group cart with total of $${getCartTotal().toFixed(2)}`}
             >
-              <Send className="mr-2 h-4 w-4" />
+              <Send className="mr-2 h-4 w-4" aria-hidden="true" />
               Submit Cart (${getCartTotal().toFixed(2)})
             </Button>
           )}
@@ -295,21 +316,35 @@ export default function OrderSummary() {
               onClick={handleAddToOrder}
               variant="outline"
               className="flex-1"
+              aria-label="Start a new group order with this item"
             >
+              <Users className="mr-2 h-4 w-4" aria-hidden="true" />
               Start Group Order
             </Button>
           )}
           
           <Button
             onClick={() => placeOrderMutation.mutate()}
-            disabled={placeOrderMutation.isPending}
-            className="flex-1 bg-gradient-to-r from-primary to-secondary text-white"
+            disabled={placeOrderMutation.isPending || !order.base}
+            className="flex-1 bg-gradient-to-r from-primary to-secondary text-white disabled:from-gray-400 disabled:to-gray-500"
+            aria-label={
+              placeOrderMutation.isPending 
+                ? "Placing order, please wait" 
+                : !order.base 
+                  ? "Order incomplete - please select required items"
+                  : isActive 
+                    ? "Add this order to the current group cart" 
+                    : "Place individual order"
+            }
           >
             {placeOrderMutation.isPending ? (
-              "Placing Order..."
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" aria-hidden="true"></div>
+                Placing Order...
+              </>
             ) : (
               <>
-                <Check className="mr-2 h-4 w-4" />
+                <Check className="mr-2 h-4 w-4" aria-hidden="true" />
                 {isActive ? "Add to This Order" : "Place Order"}
               </>
             )}

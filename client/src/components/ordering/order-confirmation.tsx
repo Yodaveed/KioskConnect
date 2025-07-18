@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { debounce } from "@/lib/debounce";
 
 export default function OrderConfirmation() {
   const { orderNumber, resetOrder } = useOrder();
@@ -15,6 +16,9 @@ export default function OrderConfirmation() {
   const [countdown, setCountdown] = useState(5);
   const [autoRedirect, setAutoRedirect] = useState(true);
   const { toast } = useToast();
+
+  // Create debounced version of addItem to prevent rapid API calls
+  const debouncedAddItem = debounce(addItem, 300);
 
   // Auto redirect countdown
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function OrderConfirmation() {
           const orderData = JSON.parse(storedOrder);
 
           
-          addItem({
+          debouncedAddItem({
             customerName,
             menuType: orderData.menuType || "Custom Order",
             orderData: orderData.orderData || orderData, // Handle both formats
@@ -137,10 +141,16 @@ export default function OrderConfirmation() {
             </div>
           )}
           
-          {orderNumber && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-600">Order Number</p>
-              <p className="text-2xl font-bold text-primary">#{orderNumber}</p>
+          {/* Order Number Display */}
+          {orderNumber ? (
+            <div className="bg-gray-50 rounded-lg p-4 mb-6" role="status" aria-live="polite">
+              <h3 className="text-2xl font-bold text-primary mb-2">Order #{orderNumber}</h3>
+              <p className="text-gray-600">Show this screen at the counter to pick up your order</p>
+            </div>
+          ) : (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Order Number Missing</h3>
+              <p className="text-red-700">Please see staff for assistance with your order.</p>
             </div>
           )}
         </CardContent>
@@ -177,8 +187,9 @@ export default function OrderConfirmation() {
         <Button
           onClick={handleAddToThisOrder}
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+          aria-label={isActive ? "Add another order to the current group cart" : "Create a group cart and add another order"}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
           {isActive ? 'Add Another Order' : 'Add to This Order'}
         </Button>
         
@@ -186,9 +197,10 @@ export default function OrderConfirmation() {
           onClick={handleStartNewOrder}
           variant="outline"
           className="w-full px-8 py-3 rounded-full font-semibold"
+          aria-label="Return to main menu to start a new order"
         >
-          <Home className="h-4 w-4 mr-2" />
-          Back to Home
+          <Home className="h-4 w-4 mr-2" aria-hidden="true" />
+          Start New Order
         </Button>
       </div>
 

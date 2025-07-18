@@ -1,0 +1,119 @@
+A. Order Summary Component (e.g. order-summary.tsx)
+Recommended Structure/Logic:
+jsx
+Copy
+Edit
+<Card className="max-w-xl mx-auto mt-10 shadow-lg">
+  <CardHeader>
+    <CardTitle>Review Your Order</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <ul>
+      {orderItems.map((item, idx) => (
+        <li key={idx} className="flex justify-between items-center py-1">
+          <span>{item.name}</span>
+          <span>${item.price.toFixed(2)}</span>
+        </li>
+      ))}
+    </ul>
+    <div className="flex justify-between font-bold border-t pt-2 mt-2">
+      <span>Subtotal</span>
+      <span>${orderSubtotal.toFixed(2)}</span>
+    </div>
+    {/* Optionally, show taxes/fees even if $0 for transparency */}
+    <div className="flex justify-between border-t pt-2 mt-2">
+      <span>Tax & Fees</span>
+      <span>${orderTax.toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between font-bold text-xl border-t pt-2 mt-2">
+      <span>Total</span>
+      <span>${orderTotal.toFixed(2)}</span>
+    </div>
+    {/* Error state */}
+    {orderError && (
+      <div className="text-red-600 mt-2" role="alert">
+        {orderError}
+      </div>
+    )}
+    {/* Actions */}
+    <div className="flex gap-2 mt-6">
+      <Button
+        onClick={submitOrder}
+        disabled={orderIsLoading || !orderValid}
+        aria-label="Place order"
+        className="w-full bg-primary text-white"
+      >
+        {orderIsLoading ? "Placing Order..." : "Place Order"}
+      </Button>
+      <Button
+        variant="outline"
+        onClick={editOrder}
+        aria-label="Edit order"
+        className="w-full"
+      >
+        Edit
+      </Button>
+    </div>
+  </CardContent>
+</Card>
+AI Agent Comments/Instructions:
+js
+Copy
+Edit
+// --- ORDER SUMMARY/CONFIRMATION FIXES ---
+// 1. Display all items with name and price; show subtotal, taxes, and total.
+// 2. Place Order button: disable during submission; show spinner/text.
+// 3. Show a clear error if submission fails (network, server, validation).
+// 4. Edit button returns to previous order step with preserved selections.
+// 5. All interactive elements have aria-label and are keyboard-accessible.
+// 6. Announce errors and state changes for screen readers.
+B. Order Confirmation Component (e.g. order-confirmation.tsx)
+Recommended Structure/Logic:
+jsx
+Copy
+Edit
+<Card className="max-w-xl mx-auto mt-10 text-center shadow-lg">
+  <CardHeader>
+    <CardTitle className="text-3xl font-bold text-green-700 mb-2">
+      🎉 Order Placed!
+    </CardTitle>
+    <p className="text-2xl mb-4">Order Number: <strong>{orderNumber}</strong></p>
+    <div className="mb-6">
+      <p className="text-lg">Show this screen at the counter to pick up your order.</p>
+      <p className="text-sm text-gray-500 mt-1">
+        {autoRedirectSeconds
+          ? `Returning to home in ${autoRedirectSeconds} seconds...`
+          : null}
+      </p>
+      <Button
+        className="mt-4"
+        onClick={handleRestartOrder}
+        aria-label="Start new order"
+      >
+        Start New Order
+      </Button>
+      <Button
+        className="mt-4 ml-4"
+        onClick={handleAddToOrder}
+        aria-label="Add another order to this group"
+        variant="outline"
+      >
+        Add to This Order
+      </Button>
+    </div>
+  </CardHeader>
+</Card>
+(Add appropriate state management for auto-redirect and error handling if orderNumber is missing.)
+
+AI Agent Comments/Instructions:
+js
+Copy
+Edit
+// --- ORDER CONFIRMATION FIXES ---
+// 1. Show order number in large, readable font with clear context.
+// 2. Announce confirmation to screen readers using role="status" or aria-live.
+// 3. Display countdown and allow user to restart/cancel auto-redirect.
+// 4. Provide Start New Order and Add to This Order actions.
+// 5. Handle missing orderNumber with a user-friendly error (show "See staff").
+// 6. Ensure everything is accessible by keyboard/tab.
+// 7. Provide clear, simple next-step instructions for the guest.
