@@ -157,6 +157,9 @@ Changelog:
 - July 17, 2025. Added comprehensive API endpoints for menu item assignments
 - July 17, 2025. Menu items can now be assigned to multiple menus simultaneously
 - July 17, 2025. Backward compatibility maintained with existing menu filtering logic
+- July 18, 2025. Fixed kiosk menu filtering to properly display only items assigned to specific menus
+- July 18, 2025. Corrected query key format in ordering components to properly pass menuId parameter
+- July 18, 2025. Kiosk now perfectly syncs with admin menu item assignments
 ```
 
 ## User Preferences

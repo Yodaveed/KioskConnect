@@ -10,7 +10,7 @@ export default function StepOne() {
   const { selectBase, setStep, order, selectedMenuId } = useOrder();
 
   const { data: baseItems = [], isLoading } = useQuery({
-    queryKey: ['/api/menu/base', selectedMenuId],
+    queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 

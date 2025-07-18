@@ -11,7 +11,7 @@ export default function StepThree() {
   const { toggleTopping, setStep, order, selectedMenuId } = useOrder();
 
   const { data: toppingItems = [], isLoading } = useQuery({
-    queryKey: ['/api/menu/topping', selectedMenuId],
+    queryKey: [`/api/menu/topping?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
