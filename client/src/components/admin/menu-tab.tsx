@@ -17,7 +17,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MenuItem, Menu } from "@shared/schema";
-import ImageUpload from "@/components/ui/image-upload";
+import ImageUpload from "@/components/ui/image-upload-fixed";
 
 const menuItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -275,10 +275,18 @@ export default function MenuTab() {
           <h2 className="text-2xl font-bold text-dark-slate">Menu Items</h2>
           <p className="text-gray-600">Manage your menu items</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button 
-              onClick={resetForm}
+              onClick={() => {
+                resetForm();
+                setIsDialogOpen(true);
+              }}
               className="bg-primary hover:bg-primary/90"
             >
               <Plus className="h-4 w-4 mr-2" />

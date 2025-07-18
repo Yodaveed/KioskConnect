@@ -1,5 +1,4 @@
-import { useState, useRef } from "react";
-import * as React from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +26,7 @@ export default function ImageUpload({
   const { toast } = useToast();
 
   // Update preview when value changes (for form resets or item switching)
-  React.useEffect(() => {
+  useEffect(() => {
     setPreview(value || null);
   }, [value]);
 
@@ -63,6 +62,9 @@ export default function ImageUpload({
 
       // Get admin token for authorization
       const token = localStorage.getItem('ic_pasta_admin_token');
+      if (!token) {
+        throw new Error('No admin token found');
+      }
       
       const response = await fetch('/api/upload/menu-item-image', {
         method: 'POST',
@@ -80,8 +82,9 @@ export default function ImageUpload({
       const result = await response.json();
       
       if (result.success) {
-        setPreview(result.data.url);
-        onChange(result.data.url);
+        const imageUrl = result.data.url;
+        setPreview(imageUrl);
+        onChange(imageUrl);
         toast({
           title: "Success!",
           description: "Image uploaded successfully",
@@ -93,7 +96,7 @@ export default function ImageUpload({
       console.error('Upload error:', error);
       toast({
         title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -114,7 +117,9 @@ export default function ImageUpload({
   };
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    if (!disabled && !isUploading) {
+      fileInputRef.current?.click();
+    }
   };
 
   return (
@@ -145,7 +150,9 @@ export default function ImageUpload({
           </Card>
         ) : (
           <Card
-            className="w-20 h-20 border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer transition-colors"
+            className={`w-20 h-20 border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors ${
+              disabled || isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+            }`}
             onClick={handleClick}
           >
             <CardContent className="p-0 flex items-center justify-center h-full">
