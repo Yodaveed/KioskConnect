@@ -18,13 +18,13 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [, setLocation] = useLocation();
   
-  // Secure admin authentication check
-  const isAuthenticated = authService.isAuthenticated();
-  
-  if (!isAuthenticated) {
-    setLocation("/admin");
-    return null;
+  // -- BEGIN ADMIN AUTH GUARD --
+  const token = localStorage.getItem('ic_pasta_admin_token');
+  if (!token) {
+    setLocation("/admin"); // Or your redirect method
+    return null; // Prevent rendering admin UI if not logged in
   }
+  // -- END ADMIN AUTH GUARD --
 
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },

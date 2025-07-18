@@ -53,11 +53,16 @@ export async function apiRequest(
 
   await throwIfResNotOk(res);
   
-  // Handle the new API response format
-  const responseData: ApiResponse = await res.json();
+  // Handle both direct responses and API wrapper format
+  const responseData = await res.json();
   
-  // For backward compatibility, return just the data if it exists
-  return responseData.data !== undefined ? responseData.data : responseData;
+  // Check if it's wrapped in success format
+  if (responseData.success !== undefined || responseData.data !== undefined) {
+    return responseData.data !== undefined ? responseData.data : responseData;
+  }
+  
+  // Return direct response (like { user, token })
+  return responseData;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -85,11 +90,16 @@ export const getQueryFn: <T>(options: {
 
     await throwIfResNotOk(res);
     
-    // Handle the new API response format
-    const responseData: ApiResponse = await res.json();
+    // Handle both direct responses and API wrapper format
+    const responseData = await res.json();
     
-    // For backward compatibility, return just the data if it exists
-    return responseData.data !== undefined ? responseData.data : responseData;
+    // Check if it's wrapped in success format
+    if (responseData.success !== undefined || responseData.data !== undefined) {
+      return responseData.data !== undefined ? responseData.data : responseData;
+    }
+    
+    // Return direct response (like { user, token })
+    return responseData;
   };
 
 export const queryClient = new QueryClient({

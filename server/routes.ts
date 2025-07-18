@@ -562,14 +562,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       isAdmin: user.isAdmin
     });
     
-    res.json(successResponse({
+    // --- ADMIN LOGIN & AUTH FIXES ---
+    // 1. Ensure server /api/auth/login responds with { user, token } on success.
+    // 2. AdminLogin expects response with token; stores in localStorage under 'ic_pasta_admin_token'.
+    // 3. Admin dashboard/page should check for this token (not old adminAuth boolean).
+    // 4. All admin API requests must include Authorization: Bearer <token> header.
+    // 5. Logout clears this token from localStorage.
+    // 6. Token is validated server-side for all protected endpoints.
+    res.json({ 
       user: { 
         id: user.id, 
         username: user.username, 
         isAdmin: user.isAdmin 
-      },
-      token
-    }, "Login successful"));
+      }, 
+      token 
+    });
   }));
 
   // GET /api/auth/verify - Verify admin token

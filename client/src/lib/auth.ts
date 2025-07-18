@@ -22,6 +22,7 @@ export class AuthService {
       password
     });
 
+    // Handle direct response format { user, token }
     this.token = response.token;
     this.user = response.user;
     
