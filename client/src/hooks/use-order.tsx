@@ -13,8 +13,8 @@ interface OrderState {
   currentStep: number;
   selectedMenuId?: number;
   order: {
-    base?: OrderItem;
-    sauce?: OrderItem;
+    bases: OrderItem[];
+    sauces: OrderItem[];
     toppings: OrderItem[];
   };
   totalPrice: number;
@@ -23,8 +23,8 @@ interface OrderState {
   // Actions
   setStep: (step: number) => void;
   setSelectedMenuId: (menuId: number) => void;
-  selectBase: (item: OrderItem) => void;
-  selectSauce: (item: OrderItem) => void;
+  toggleBase: (item: OrderItem) => void;
+  toggleSauce: (item: OrderItem) => void;
   toggleTopping: (item: OrderItem) => void;
   calculateTotal: () => void;
   resetOrder: () => void;
@@ -37,6 +37,8 @@ export const useOrder = create<OrderState>()(
       currentStep: 0, // Start at 0 for menu selection
       selectedMenuId: undefined,
       order: {
+        bases: [],
+        sauces: [],
         toppings: [],
       },
       totalPrice: 0,
@@ -46,17 +48,47 @@ export const useOrder = create<OrderState>()(
 
       setSelectedMenuId: (menuId) => set({ selectedMenuId: menuId }),
 
-      selectBase: (item) => {
-        set((state) => ({
-          order: { ...state.order, base: item },
-        }));
+      toggleBase: (item) => {
+        set((state) => {
+          const existingIndex = state.order.bases.findIndex(
+            (base) => base.id === item.id
+          );
+          
+          let newBases;
+          if (existingIndex !== -1) {
+            newBases = state.order.bases.filter(
+              (base) => base.id !== item.id
+            );
+          } else {
+            newBases = [...state.order.bases, item];
+          }
+          
+          return {
+            order: { ...state.order, bases: newBases },
+          };
+        });
         get().calculateTotal();
       },
 
-      selectSauce: (item) => {
-        set((state) => ({
-          order: { ...state.order, sauce: item },
-        }));
+      toggleSauce: (item) => {
+        set((state) => {
+          const existingIndex = state.order.sauces.findIndex(
+            (sauce) => sauce.id === item.id
+          );
+          
+          let newSauces;
+          if (existingIndex !== -1) {
+            newSauces = state.order.sauces.filter(
+              (sauce) => sauce.id !== item.id
+            );
+          } else {
+            newSauces = [...state.order.sauces, item];
+          }
+          
+          return {
+            order: { ...state.order, sauces: newSauces },
+          };
+        });
         get().calculateTotal();
       },
 
@@ -86,17 +118,20 @@ export const useOrder = create<OrderState>()(
         const state = get();
         let total = 0;
         
-        if (state.order.base) {
-          total += state.order.base.price;
-          if (state.order.base.modifiers) {
-            total += state.order.base.modifiers.reduce((sum, mod) => sum + mod.price, 0);
+        // Calculate bases total
+        state.order.bases.forEach((base) => {
+          total += base.price;
+          if (base.modifiers) {
+            total += base.modifiers.reduce((sum, mod) => sum + mod.price, 0);
           }
-        }
+        });
         
-        if (state.order.sauce) {
-          total += state.order.sauce.price;
-        }
+        // Calculate sauces total
+        state.order.sauces.forEach((sauce) => {
+          total += sauce.price;
+        });
         
+        // Calculate toppings total
         state.order.toppings.forEach((topping) => {
           total += topping.price;
         });
@@ -108,7 +143,11 @@ export const useOrder = create<OrderState>()(
         set({
           currentStep: 0,
           selectedMenuId: undefined,
-          order: { toppings: [] },
+          order: {
+            bases: [],
+            sauces: [],
+            toppings: [],
+          },
           totalPrice: 0,
           orderNumber: undefined,
         });

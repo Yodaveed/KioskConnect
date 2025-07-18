@@ -30,8 +30,8 @@ export default function OrderSummary() {
       const orderData = {
         totalAmount: totalPrice.toFixed(2),
         items: {
-          base: order.base,
-          sauce: order.sauce,
+          bases: order.bases,
+          sauces: order.sauces,
           toppings: order.toppings,
         },
       };
@@ -62,8 +62,8 @@ export default function OrderSummary() {
         menuType: getMenuTypeName(),
         orderNumber: data.orderNumber,
         orderData: {
-          base: order.base,
-          sauce: order.sauce,
+          bases: order.bases,
+          sauces: order.sauces,
           toppings: order.toppings,
           totalAmount: totalPrice.toFixed(2)
         },
@@ -148,8 +148,8 @@ export default function OrderSummary() {
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
       const orderDataForCart = {
-        base: order.base,
-        sauce: order.sauce,
+        bases: order.bases,
+        sauces: order.sauces,
         toppings: order.toppings,
         totalAmount: totalPrice.toFixed(2)
       };
@@ -185,33 +185,48 @@ export default function OrderSummary() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Base Selection */}
-          {order.base && (
-            <div className="flex justify-between items-center">
-              <div>
-                <h4 className="font-semibold">{order.base.name}</h4>
-                <p className="text-sm text-gray-600">Base</p>
-              </div>
-              <div className="text-right">
-                <div className="font-bold">${order.base.price.toFixed(2)}</div>
-                {order.base.modifiers && order.base.modifiers.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    {order.base.modifiers.map(mod => `+${mod.name}`).join(', ')}
+          {order.bases.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Bases</h4>
+              {order.bases.map((base, index) => (
+                <div key={index} className="flex justify-between items-center mb-1">
+                  <div className="flex items-center gap-2">
+                    <span>{base.name}</span>
+                    {base.price > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        Premium
+                      </Badge>
+                    )}
                   </div>
-                )}
-              </div>
+                  <div className="font-medium">
+                    ${base.price.toFixed(2)}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
           {/* Sauce Selection */}
-          {order.sauce && (
+          {order.sauces.length > 0 && (
             <>
               <Separator />
-              <div className="flex justify-between items-center">
-                <div>
-                  <h4 className="font-semibold">{order.sauce.name}</h4>
-                  <p className="text-sm text-gray-600">Sauce</p>
-                </div>
-                <div className="font-bold">+${order.sauce.price.toFixed(2)}</div>
+              <div>
+                <h4 className="font-semibold mb-2">Sauces</h4>
+                {order.sauces.map((sauce, index) => (
+                  <div key={index} className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2">
+                      <span>{sauce.name}</span>
+                      {sauce.price > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="font-medium">
+                      {sauce.price > 0 ? `+$${sauce.price.toFixed(2)}` : "Included"}
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           )}
