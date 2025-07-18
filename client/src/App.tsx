@@ -3,6 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SkipLink } from "@/components/ui/skip-link";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import Home from "@/pages/home";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -25,8 +27,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <ErrorBoundary>
+          <SkipLink href="#main-content">Skip to main content</SkipLink>
+          <Toaster />
+          <main id="main-content">
+            <Router />
+          </main>
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );

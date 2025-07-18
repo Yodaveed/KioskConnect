@@ -2,6 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Accessibility enhancements */
+@layer base {
+  /* Improved focus indicators */
+  *:focus {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .border {
+      border-width: 2px;
+    }
+    
+    .shadow-sm {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Improved text readability */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Professional polish */
+@layer components {
+  /* Enhanced button focus states */
+  .btn-focus {
+    @apply focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-opacity-30 focus:outline-none;
+  }
+
+  /* Improved loading states */
+  .loading-pulse {
+    @apply animate-pulse bg-gray-200;
+  }
+
+  /* Better error states */
+  .error-border {
+    @apply border-red-300 focus:border-red-500 focus:ring-red-200;
+  }
+
+  /* Success states */
+  .success-border {
+    @apply border-green-300 focus:border-green-500 focus:ring-green-200;
+  }
+
+  /* Smooth transitions */
+  .smooth-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(20, 14.3%, 4.1%);

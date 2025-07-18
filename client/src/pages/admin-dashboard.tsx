@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Settings, Eye, LogOut, BarChart3, Utensils, Receipt, QrCode, Menu as MenuIcon, PackageX, DollarSign } from "lucide-react";
+import { authService } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
@@ -17,8 +18,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [, setLocation] = useLocation();
   
-  // Simple admin authentication check
-  const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
+  // Secure admin authentication check
+  const isAuthenticated = authService.isAuthenticated();
   
   if (!isAuthenticated) {
     setLocation("/admin");
@@ -83,8 +84,8 @@ export default function AdminDashboard() {
               View Kiosk
             </Button>
             <Button
-              onClick={() => {
-                localStorage.removeItem('adminAuth');
+              onClick={async () => {
+                await authService.logout();
                 setLocation("/");
               }}
               variant="outline"

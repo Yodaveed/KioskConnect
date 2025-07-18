@@ -1,0 +1,207 @@
+Goal: Polish the kiosk and admin app to match the best in the food/service industry.
+
+A. Guest Flow (Front-End)
+1. Menu Browsing & Selection
+Enhancements:
+
+Make menu cards fully keyboard-accessible (tabIndex=0, handle Enter key).
+
+Show real product images (if available), fallback to icon.
+
+Add a loading spinner/skeleton while fetching menu items.
+
+Show a clear error if menu fails to load.
+
+Sort menus by popularity or “featured” flag.
+
+2. Step One (Choose Base)
+Enhancements:
+
+Make base cards keyboard and screen-reader accessible.
+
+Visually highlight the selected base (e.g., colored border/animation).
+
+Show clear pricing logic (“first X free, extras $Y”) near each base.
+
+Disable “Continue” until a base is selected, with tooltip if needed.
+
+Show a friendly error if no base items are available.
+
+3. Step Two/Three (Sauce/Topping Selection)
+Enhancements:
+
+Accessibility: Cards/checkboxes should be focusable, labeled for screen readers.
+
+Show current price for each (e.g., “Included” or “+$0.25”).
+
+Display message: “You’ve selected X sauces/toppings (+$Y extra)”.
+
+Optionally enforce selection limits or provide warning when exceeded.
+
+If empty (no sauces/toppings), show a friendly “none available” message.
+
+4. Order Summary
+Enhancements:
+
+Show all items and their individual prices, itemized subtotal.
+
+Show clear error if order fails to submit (network/server).
+
+Disable “Place Order” button and show spinner during submission.
+
+Block order submission if required items are missing.
+
+Add clear “what happens next” instructions after order is placed.
+
+Offer “Print Receipt” if guest printer is available.
+
+5. Order Confirmation
+Enhancements:
+
+Order number should be prominent and easy to read.
+
+All instructions should be screen-reader accessible and visible.
+
+Announce order status with visual effect (e.g., confetti/check).
+
+Auto-redirect should have a manual override/cancel.
+
+Add a “Start New Order” button.
+
+Show clear error if order number is missing or API failed.
+
+6. Cart/Group Orders
+Enhancements:
+
+Prevent rapid double-add/remove with debounce.
+
+Disable submit for empty cart and show tooltip.
+
+Show per-person subtotals for group cart.
+
+Show clear error if cart join fails.
+
+Auto-clear cart after timeout for privacy/security.
+
+All buttons and copy features should be accessible.
+
+B. Admin/Back-End
+1. Authentication
+CRITICAL FIX:
+
+Replace localStorage with a secure, server-issued JWT or session token (store in HttpOnly cookie if possible).
+
+On every admin page/API, verify session/token server-side.
+
+Throttle login attempts on server (prevent brute force).
+
+2. Menu Management
+Enhancements:
+
+All changes should reflect instantly to guests (push or poll).
+
+Validate image uploads for size/type.
+
+Allow batch edit/import (CSV).
+
+Add undo on delete (snackbar/toast).
+
+Highlight inactive items.
+
+Provide “preview as guest” option.
+
+3. Inventory/Sold Out
+Enhancements:
+
+Ensure guest UI never shows/orders sold out items (real-time sync).
+
+Enable batch sold-out/available toggles.
+
+Optionally tie to auto-inventory level.
+
+Add visual cues (badges) for sold out/available.
+
+All controls accessible and screen-reader friendly.
+
+4. Orders
+Enhancements:
+
+Add a clear “Print” button for each order (either browser print or receipt printer).
+
+Ensure completed/cancelled orders can be cleared or archived.
+
+Paginate order list if high volume.
+
+Add detail modal with all order info and print option.
+
+Allow CSV export for accounting/reporting.
+
+5. Pricing Config
+Enhancements:
+
+Prevent negative/nonsensical values.
+
+Warn on outlier settings (“Are you sure?”).
+
+Show a real-time price preview for admin confirmation.
+
+Allow copying rules between menus.
+
+6. System/Integration
+Enhancements:
+
+Add backup/export/import for menus and orders.
+
+Stress-test app with many items/orders for speed.
+
+Log/report errors gracefully.
+
+Document printer setup and options in the admin.
+
+C. Security & Performance
+All sensitive actions must be protected by real server authentication.
+
+Never expose passwords or tokens to guests.
+
+All forms and APIs must sanitize inputs (prevent XSS/SQLi).
+
+Use HTTPS for all traffic.
+
+Remove any guest ability to access /admin or related APIs.
+
+Make sure backups/exports do not contain sensitive info (passwords).
+
+D. QA Checklist (For After All Fixes)
+Retest every user and admin flow, including all edge/bad input cases.
+
+Confirm all fixes by recreating failed scenarios.
+
+Test on desktop, tablet, and phone (emulation/device).
+
+Use browser console to check for errors.
+
+Try to “break” every field and action.
+
+Ensure all UI is visually consistent and accessible.
+
+Confirm guest and admin updates propagate instantly.
+
+Run through printing, backup/export, and restore flows.
+
+E. “Wish List” / Next-Level Features
+Analytics dashboard for admin (best sellers, rush hours, etc).
+
+Automated low-stock alerts.
+
+Role-based staff accounts.
+
+Notification system (order ready, etc).
+
+Loyalty/rewards integration.
+
+How to Use This with Replit AI Agent
+Paste this entire summary as your prompt.
+
+Ask the agent to step through each section, surface remaining bugs, and make fixes as outlined.
+
+Run the QA checklist after all changes.

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { authService } from "@/lib/auth";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -33,15 +33,13 @@ export default function AdminLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      return await apiRequest("POST", "/api/auth/login", data);
+      return await authService.login(data.username, data.password);
     },
     onSuccess: (response) => {
       toast({
         title: "Login successful",
         description: "Welcome to the admin dashboard",
       });
-      // Store admin session or token if needed
-      localStorage.setItem('adminAuth', 'true');
       setLocation("/admin/dashboard");
     },
     onError: (error: any) => {
@@ -63,9 +61,12 @@ export default function AdminLogin() {
         <Card className="shadow-xl">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-primary bg-opacity-20 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Shield className="h-8 w-8 text-primary" />
+              <Shield className="h-8 w-8 text-primary" aria-hidden="true" />
             </div>
             <CardTitle className="text-2xl font-bold text-dark-slate">Admin Login</CardTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              Enter your credentials to access the admin dashboard
+            </p>
           </CardHeader>
           <CardContent>
             <Form {...form}>

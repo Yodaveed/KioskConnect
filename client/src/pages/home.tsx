@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IceCream, Settings, ArrowRight, ShoppingCart, Users } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { GuestBanner, OrderingTips } from "@/components/ui/guest-banner";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -27,6 +30,10 @@ export default function Home() {
   const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
   const { cartId, items, isActive, setCartId, addItem } = useCart();
 
+  // QR code and guest info state
+  const [qrInfo, setQrInfo] = useState<{ table?: string; location?: string }>({});
+  const [showGuestBanner, setShowGuestBanner] = useState(false);
+
   // Reset order state when component mounts to start fresh
   useEffect(() => {
     // Clear any persistent order state to start fresh
@@ -43,11 +50,13 @@ export default function Home() {
       if (location) {
         localStorage.setItem('qr_location', location);
       }
+      setQrInfo({ table: tableNumber, location: location || undefined });
+      setShowGuestBanner(true);
       console.log(`QR Code detected: Table ${tableNumber}${location ? ` at ${location}` : ''}`);
     }
   }, []);
 
-  const { data: menus = [] } = useQuery<Menu[]>({
+  const { data: menus = [], isLoading: menusLoading, error: menusError } = useQuery<Menu[]>({
     queryKey: ["/api/menus"],
   });
 
@@ -69,19 +78,50 @@ export default function Home() {
   };
 
   const renderMenuSelection = () => {
+    if (menusLoading) {
+      return (
+        <div className="space-y-8">
+          <div className="text-center">
+            <h2 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h2>
+            <LoadingSpinner size="lg">Loading menu options...</LoadingSpinner>
+          </div>
+        </div>
+      );
+    }
+
+    if (menusError) {
+      return (
+        <div className="space-y-8">
+          <div className="text-center">
+            <h2 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h2>
+            <p className="text-red-600">Unable to load menu options. Please try refreshing the page.</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <h2 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h2>
+          <h1 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h1>
           <p className="text-gray-600 text-xl">Select from our delicious menu options</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" role="group" aria-label="Menu selection">
           {(menus as Menu[]).map((menu: Menu) => (
             <Card
               key={menu.id}
-              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary"
+              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               onClick={() => handleMenuSelect(menu)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleMenuSelect(menu);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label={`Select ${menu.name} menu - ${menu.description}`}
             >
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -89,9 +129,9 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-semibold text-dark-slate mb-2">{menu.name}</h3>
                 <p className="text-gray-600 text-sm mb-4">{menu.description}</p>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-white focus:ring-2 focus:ring-primary focus:ring-offset-2">
                   Start Order
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Button>
               </CardContent>
             </Card>
@@ -103,16 +143,16 @@ export default function Home() {
 
   const renderProgressBar = () => {
     const steps = [
-      { number: 1, label: "Base" },
-      { number: 2, label: "Sauce" },
-      { number: 3, label: "Toppings" },
+      { number: 1, label: "Base", completed: currentStep > 1 },
+      { number: 2, label: "Sauce", completed: currentStep > 2 },
+      { number: 3, label: "Toppings", completed: currentStep > 3 },
     ];
 
     return (
-      <div className="bg-white shadow-sm">
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-8" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={3} aria-label="Order progress">
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
@@ -280,8 +320,9 @@ export default function Home() {
       {/* Admin Button */}
       <Button
         onClick={() => setLocation("/admin")}
-        className="fixed bottom-4 right-4 bg-dark-slate text-white p-3 rounded-full shadow-lg hover:bg-gray-800 transition-colors z-40"
+        className="fixed bottom-4 right-4 bg-dark-slate text-white p-3 rounded-full shadow-lg hover:bg-gray-800 transition-colors z-40 btn-focus"
         size="icon"
+        aria-label="Access admin dashboard"
       >
         <Settings className="h-5 w-5" />
       </Button>

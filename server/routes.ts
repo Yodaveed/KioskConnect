@@ -15,10 +15,14 @@ import {
 import { upload, deleteUploadedFile, getFileUrl } from "./upload";
 import { printerService } from "./printer";
 import { qrCodeService } from "./qr-generator";
+import { setupSecureAuth, authenticateAdmin, generateToken, verifyPassword, hashPassword, type AuthenticatedRequest } from "./auth";
 import path from 'path';
 import express from 'express';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ==================== SECURITY SETUP ====================
+  await setupSecureAuth(app);
+  
   // ==================== STATIC FILE SERVING ====================
   
   // Serve uploaded files
@@ -34,6 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menus - Create new menu
   app.post("/api/menus", 
+    authenticateAdmin,
     validateBody(insertMenuSchema),
     asyncHandler(async (req, res) => {
       const menu = await storage.createMenu(req.body);
@@ -43,6 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PUT /api/menus/:id - Update menu
   app.put("/api/menus/:id", 
+    authenticateAdmin,
     validateIdParam,
     validatePartialBody(insertMenuSchema),
     asyncHandler(async (req, res) => {
@@ -53,6 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // DELETE /api/menus/:id - Delete menu
   app.delete("/api/menus/:id", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       await storage.deleteMenu(parseInt(req.params.id));
@@ -82,6 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menu - Create new menu item
   app.post("/api/menu", 
+    authenticateAdmin,
     upload.single('image'),
     asyncHandler(async (req, res) => {
       let menuItemData = req.body;
@@ -137,6 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PUT /api/menu/:id - Update menu item
   app.put("/api/menu/:id", 
+    authenticateAdmin,
     validateIdParam,
     upload.single('image'),
     asyncHandler(async (req, res) => {
@@ -193,6 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // DELETE /api/menu/:id - Delete menu item
   app.delete("/api/menu/:id", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       await storage.deleteMenuItem(parseInt(req.params.id));
@@ -202,6 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PUT /api/menu/:id/sold-out - Toggle sold out status
   app.put("/api/menu/:id/sold-out", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       const { soldOut } = req.body;
@@ -305,6 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/upload/menu-item-image - Upload menu item image
   app.post("/api/upload/menu-item-image", 
+    authenticateAdmin,
     (req, res, next) => {
       upload.single('image')(req, res, (err) => {
         if (err) {
@@ -330,6 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // DELETE /api/upload/:filename - Delete uploaded image
   app.delete("/api/upload/:filename", 
+    authenticateAdmin,
     asyncHandler(async (req, res) => {
       const { filename } = req.params;
       await deleteUploadedFile(filename);
@@ -525,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== AUTHENTICATION ROUTES ====================
 
-  // POST /api/auth/login - Admin login
+  // POST /api/auth/login - Admin login with secure authentication
   app.post("/api/auth/login", asyncHandler(async (req, res) => {
     const { username, password } = req.body;
     
@@ -535,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const user = await storage.getUserByUsername(username);
     
-    if (!user || user.password !== password) {
+    if (!user || !(await verifyPassword(password, user.password))) {
       return res.status(401).json(errorResponse("Invalid credentials"));
     }
     
@@ -543,13 +556,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json(errorResponse("Admin access required"));
     }
     
+    const token = generateToken({
+      id: user.id,
+      username: user.username,
+      isAdmin: user.isAdmin
+    });
+    
     res.json(successResponse({
       user: { 
         id: user.id, 
         username: user.username, 
         isAdmin: user.isAdmin 
-      }
+      },
+      token
     }, "Login successful"));
+  }));
+
+  // GET /api/auth/verify - Verify admin token
+  app.get("/api/auth/verify", authenticateAdmin, asyncHandler(async (req: AuthenticatedRequest, res) => {
+    res.json(successResponse({
+      user: req.user
+    }, "Token valid"));
+  }));
+
+  // POST /api/auth/logout - Admin logout
+  app.post("/api/auth/logout", asyncHandler(async (req, res) => {
+    res.json(successResponse(null, "Logged out successfully"));
   }));
 
   // ==================== QR CODE ROUTES ====================
