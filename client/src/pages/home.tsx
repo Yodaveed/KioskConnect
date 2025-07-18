@@ -31,6 +31,20 @@ export default function Home() {
   useEffect(() => {
     // Clear any persistent order state to start fresh
     resetOrder();
+    
+    // Check for QR code parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableNumber = urlParams.get('table');
+    const location = urlParams.get('location');
+    
+    if (tableNumber) {
+      // Store QR code info for later use in orders
+      localStorage.setItem('qr_table', tableNumber);
+      if (location) {
+        localStorage.setItem('qr_location', location);
+      }
+      console.log(`QR Code detected: Table ${tableNumber}${location ? ` at ${location}` : ''}`);
+    }
   }, []);
 
   const { data: menus = [] } = useQuery<Menu[]>({

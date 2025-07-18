@@ -13,6 +13,8 @@ import {
   globalErrorHandler 
 } from "./middleware";
 import { upload, deleteUploadedFile, getFileUrl } from "./upload";
+import { printerService } from "./printer";
+import { qrCodeService } from "./qr-generator";
 import path from 'path';
 import express from 'express';
 
@@ -370,6 +372,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const validatedData = insertOrderSchema.parse(orderData);
     const order = await storage.createOrder(validatedData);
+    
+    // Attempt to print receipt
+    try {
+      const printData = {
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        menuType: req.body.menuType || "Ice Cream",
+        items: order.items || {},
+        totalAmount: order.totalAmount,
+        timestamp: order.createdAt || new Date().toISOString(),
+        cartId: req.body.cartId
+      };
+      
+      const printSuccess = await printerService.printReceipt(printData);
+      if (!printSuccess) {
+        console.warn(`Print failed for order ${order.orderNumber}`);
+      }
+    } catch (printError) {
+      console.error('Print error:', printError);
+      // Don't fail the order if printing fails
+    }
+    
     res.status(201).json(successResponse(order, "Order placed successfully"));
   }));
 
@@ -398,6 +422,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       endDate ? new Date(endDate as string) : undefined
     );
     res.json(successResponse(stats));
+  }));
+
+  // ==================== PRINT SERVICE ROUTES ====================
+
+  // GET /api/print/test - Test printer connection
+  app.get("/api/print/test", asyncHandler(async (req, res) => {
+    const isConnected = await printerService.testConnection();
+    res.json(successResponse(
+      { connected: isConnected }, 
+      isConnected ? "Printer connected successfully" : "Printer connection failed"
+    ));
+  }));
+
+  // POST /api/print - Print receipt (for use by other devices)
+  app.post("/api/print", asyncHandler(async (req, res) => {
+    const { orderNumber, customerName, menuType, items, totalAmount, timestamp, cartId } = req.body;
+    
+    if (!orderNumber || !totalAmount || !items) {
+      return res.status(400).json(errorResponse("Missing required print data"));
+    }
+    
+    const printData = {
+      orderNumber,
+      customerName,
+      menuType: menuType || "Ice Cream",
+      items,
+      totalAmount,
+      timestamp: timestamp || new Date().toISOString(),
+      cartId
+    };
+    
+    const printSuccess = await printerService.printReceipt(printData);
+    
+    if (printSuccess) {
+      res.json(successResponse(null, "Receipt printed successfully"));
+    } else {
+      res.status(500).json(errorResponse("Print failed"));
+    }
+  }));
+
+  // ==================== QR CODE ROUTES ====================
+
+  // GET /api/qr/:tableNumber - Generate QR code for table
+  app.get("/api/qr/:tableNumber", asyncHandler(async (req, res) => {
+    const { tableNumber } = req.params;
+    const { location, format } = req.query;
+    
+    const options = {
+      tableNumber,
+      location: location as string,
+    };
+    
+    try {
+      if (format === 'svg') {
+        const qrCodeSVG = await qrCodeService.generateQRCodeSVG(options);
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.send(qrCodeSVG);
+      } else {
+        const qrCodeDataURL = await qrCodeService.generateQRCode(options);
+        res.json(successResponse({
+          qrCode: qrCodeDataURL,
+          url: qrCodeService.generateOrderURL(options)
+        }));
+      }
+    } catch (error) {
+      res.status(500).json(errorResponse("Failed to generate QR code"));
+    }
+  }));
+
+  // GET /api/qr/bulk/:count - Generate multiple QR codes for tables
+  app.get("/api/qr/bulk/:count", asyncHandler(async (req, res) => {
+    const count = parseInt(req.params.count);
+    const { location, startNumber = 1 } = req.query;
+    
+    if (count > 50) {
+      return res.status(400).json(errorResponse("Maximum 50 QR codes at once"));
+    }
+    
+    const qrCodes = [];
+    for (let i = 0; i < count; i++) {
+      const tableNumber = (parseInt(startNumber as string) + i).toString();
+      const options = {
+        tableNumber,
+        location: location as string,
+      };
+      
+      try {
+        const qrCodeDataURL = await qrCodeService.generateQRCode(options);
+        qrCodes.push({
+          tableNumber,
+          qrCode: qrCodeDataURL,
+          url: qrCodeService.generateOrderURL(options)
+        });
+      } catch (error) {
+        console.error(`Failed to generate QR code for table ${tableNumber}:`, error);
+      }
+    }
+    
+    res.json(successResponse(qrCodes));
   }));
 
   // ==================== AUTHENTICATION ROUTES ====================
