@@ -1,10 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Trust proxy for rate limiting and security headers (required for Replit deployment)
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+// Add cookie parser middleware for secure authentication
+app.use(cookieParser());
 
 app.use((req, res, next) => {
   const start = Date.now();

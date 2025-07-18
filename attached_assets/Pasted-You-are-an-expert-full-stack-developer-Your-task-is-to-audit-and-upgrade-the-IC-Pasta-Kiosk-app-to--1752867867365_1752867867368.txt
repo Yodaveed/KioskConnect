@@ -1,0 +1,143 @@
+You are an expert full-stack developer. Your task is to audit and upgrade the IC Pasta Kiosk app to match industry-leading standards in security, performance, accessibility, and food service best practices. The codebase is React/TypeScript (client), Node.js/Express (server), PostgreSQL (Drizzle ORM), and deployed on Replit. You have access to all files referenced.
+
+For each numbered item below:
+
+Reference the exact file(s) and component(s) in your changes.
+
+If an item is already compliant, note it as such, but still double-check.
+
+Explain what you change for future maintainers (in code comments).
+
+CRITICAL (Security/Data Loss Risks)
+Authentication and Session Security
+
+Review server/auth.ts.
+
+Ensure all JWT or session tokens are stored in HTTP-only, secure cookies. Enforce session expiration. Implement CSRF protection (e.g., csurf).
+
+Example:
+
+ts
+Copy
+Edit
+res.cookie('token', jwt, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+Block any usage of localStorage for sensitive tokens.
+
+File Upload Security
+
+In server/upload.ts, allow only JPEG/PNG/WebP (never SVG or executables). Enforce max file size (e.g., 2MB). Store uploaded files with UUID names, never trust original filenames.
+
+Example:
+
+ts
+Copy
+Edit
+const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+if (!allowedTypes.includes(file.mimetype)) throw new Error('Invalid file type');
+Store files outside public root if possible.
+
+SQL Injection Prevention
+
+In server/db.ts, server/routes.ts, eliminate all raw SQL and string template queries. All DB interaction must use Drizzle ORM’s parameterized methods.
+
+Input Validation
+
+Add Zod or Yup validation schemas for all incoming data (orders, menu/admin changes, file uploads) in server/routes.ts, client/src/components/ordering/, and client/src/components/admin/.
+
+Example:
+
+ts
+Copy
+Edit
+const orderSchema = z.object({ ... });
+// Use safeParse on every relevant endpoint
+Authorization for Admin Routes
+
+In server/routes.ts and server/auth.ts, ensure all admin endpoints check for admin role/permissions with middleware.
+
+Example:
+
+ts
+Copy
+Edit
+if (req.user?.role !== 'admin') return res.status(403).send('Forbidden');
+Error Handling and Data Leakage
+
+In all API handlers (especially server/index.ts, server/routes.ts), replace any error stack/trace exposure with generic error messages to the client. Log full errors server-side only.
+
+Database Transactions for Multi-Step Logic
+
+In server/db.ts, wrap all multi-step writes (like order + inventory updates) in transactions. Ensure atomicity.
+
+API Rate Limiting
+
+In server/index.ts, implement express-rate-limit on all sensitive endpoints (login, orders, file upload).
+
+HIGH PRIORITY (Performance/UX Impact)
+Optimize Image Serving
+
+In server/storage.ts, server/upload.ts, serve images with cache headers. If possible, use CDN or asset hosting.
+
+React Code-Splitting/Lazy Loading
+
+In client/src/pages/ and client/src/components/, apply React.lazy/Suspense to all major routes (admin, order, cart) to reduce initial bundle.
+
+Loading and Error Feedback
+
+In ordering and cart components (client/src/components/ordering/, client/src/components/cart/), add clear loading indicators, ARIA live regions, and optimistic UI for fast user feedback.
+
+Accessibility (ARIA/Keyboard/Contrast)
+
+Add ARIA labels, tab order, and keyboard navigation support to all order/admin/cart forms and interactive elements.
+
+Use WAI-ARIA practices and ensure compliance with WCAG for kiosk/tablet users.
+
+MEDIUM PRIORITY (Code Quality/Maintainability)
+Enable TypeScript Strict Mode
+
+In tsconfig.json, enable "strict": true. Fix any resulting type errors and replace all any types with explicit, precise types (especially for API data, props, and DB models).
+
+React Error Boundaries
+
+In client/src/App.tsx, wrap the app with an ErrorBoundary component so UI doesn’t fully crash on errors.
+
+Add Testing
+
+Implement at least basic Jest (backend), React Testing Library (frontend), and Cypress (E2E) coverage for core order/admin/cart flows.
+
+Centralize Constants and Avoid Duplicates
+
+Move magic numbers (like max file size, order minimum) to a single constants.ts file and use it across backend and frontend.
+
+Audit Logging
+
+In server/index.ts and all admin endpoints, log important actions (menu changes, order status changes, refunds) with timestamps and user/admin IDs for audit trails.
+
+INDUSTRY STANDARDS (Food Service)
+Order Audit Trail
+
+Log every order state change (created, in-progress, completed, refunded) in the DB, including which admin/user performed the change.
+
+Race Condition and Idempotency
+
+For group cart and rapid order flows, add DB constraints (e.g., unique order IDs, idempotency keys) and debounce/delay rapid UI order submissions.
+
+Food Safety: Allergen/Ingredient Info
+
+In menu item models (shared/schema.ts and admin UI), add required structured fields for allergens and major ingredients. Surface these on the kiosk for user awareness.
+
+Privacy and Data Deletion
+
+Add a basic privacy statement to the app. Implement a flow (or stub) for user/account data deletion per request.
+
+General:
+
+Comment all new or modified code for future maintainers.
+
+Document any breaking changes in a CHANGELOG.
+
+After changes, run all tests, lint, and build the app.
+
+Proceed step-by-step. For each major change, summarize what was fixed and what file(s) were changed in a running report.
+
+Begin now.

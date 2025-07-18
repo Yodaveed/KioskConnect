@@ -186,3 +186,72 @@ export type Cart = typeof carts.$inferSelect;
 export type InsertCart = z.infer<typeof insertCartSchema>;
 export type MenuItemToMenu = typeof menuItemsToMenus.$inferSelect;
 export type InsertMenuItemToMenu = z.infer<typeof insertMenuItemToMenuSchema>;
+
+// Enhanced validation schemas with comprehensive security validation
+export const enhancedInsertMenuSchema = insertMenuSchema.extend({
+  name: z.string().min(1, "Menu name is required").max(100, "Menu name too long"),
+  description: z.string().optional(),
+  orderingFlow: z.enum(["three-step", "single-page", "custom"], {
+    required_error: "Ordering flow is required"
+  }),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().min(0).default(0),
+});
+
+export const enhancedInsertMenuItemSchema = insertMenuItemSchema.extend({
+  name: z.string().min(1, "Item name is required").max(100, "Item name too long"),
+  description: z.string().optional(),
+  category: z.enum(["base", "sauce", "topping", "addon", "flavor", "size"], {
+    required_error: "Category is required"
+  }),
+  price: z.string().regex(/^\d+\.\d{2}$/, "Price must be in format X.XX"),
+  isActive: z.boolean().default(true),
+  isPremium: z.boolean().default(false),
+  isSoldOut: z.boolean().default(false),
+  maxQuantity: z.number().int().min(1).nullable().optional(),
+  isRequired: z.boolean().default(false),
+});
+
+export const enhancedInsertOrderSchema = insertOrderSchema.extend({
+  orderNumber: z.string().min(1, "Order number is required"),
+  customerName: z.string().min(1, "Customer name is required").max(100, "Name too long"),
+  items: z.array(z.object({
+    id: z.number().int().positive(),
+    name: z.string().min(1),
+    price: z.string().regex(/^\d+\.\d{2}$/),
+    quantity: z.number().int().min(1).max(50)
+  })).min(1, "At least one item required"),
+  totalAmount: z.string().regex(/^\d+\.\d{2}$/, "Total must be in format X.XX"),
+  status: z.enum(["pending", "preparing", "completed", "cancelled"]).default("pending"),
+});
+
+export const enhancedInsertCartSchema = insertCartSchema.extend({
+  cartId: z.string().min(1, "Cart ID is required").max(50, "Cart ID too long"),
+  customerName: z.string().min(1, "Customer name is required").max(100, "Name too long"),
+  items: z.array(z.object({
+    id: z.number().int().positive(),
+    name: z.string().min(1),
+    price: z.string().regex(/^\d+\.\d{2}$/),
+    quantity: z.number().int().min(1).max(50)
+  })).min(1, "At least one item required"),
+  totalAmount: z.string().regex(/^\d+\.\d{2}$/, "Total must be in format X.XX"),
+});
+
+// Additional validation schemas for API endpoints
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required").max(50, "Username too long"),
+  password: z.string().min(1, "Password is required").min(3, "Password too short"),
+});
+
+export const idParamSchema = z.object({
+  id: z.string().regex(/^\d+$/, "Invalid ID format").transform(Number),
+});
+
+export const menuQuerySchema = z.object({
+  menuId: z.string().regex(/^\d+$/, "Invalid menu ID").transform(Number).optional(),
+});
+
+export const categoryQuerySchema = z.object({
+  menuId: z.string().regex(/^\d+$/, "Invalid menu ID").transform(Number).optional(),
+  category: z.enum(["base", "sauce", "topping", "addon", "flavor", "size"]).optional(),
+});

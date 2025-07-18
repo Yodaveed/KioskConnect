@@ -57,8 +57,13 @@ export function verifyToken(token: string): any {
 }
 
 export function authenticateAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  // Try cookie first (preferred for web apps), then fallback to Authorization header
+  let token = req.cookies?.auth_token;
+  
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  }
 
   if (!token) {
     return res.status(401).json({
@@ -116,7 +121,16 @@ export async function setupSecureAuth(app: Express) {
             isAdmin: defaultAdmin.isAdmin
           });
 
-          console.log("Login successful, token generated");
+          // Store token in HTTP-only, secure cookie for enhanced security
+          res.cookie('auth_token', token, {
+            httpOnly: true, // Prevents XSS attacks via JavaScript access
+            secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+            sameSite: 'strict', // CSRF protection
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            path: '/'
+          });
+
+          console.log("Login successful, token generated and stored in secure cookie");
           res.json({
             success: true,
             data: {
@@ -125,7 +139,8 @@ export async function setupSecureAuth(app: Express) {
                 username: defaultAdmin.username,
                 isAdmin: defaultAdmin.isAdmin
               },
-              token
+              // Remove token from response body for security
+              token: "stored_in_cookie"
             },
             message: "Login successful"
           });
@@ -142,6 +157,13 @@ export async function setupSecureAuth(app: Express) {
 
   // POST /api/auth/logout - Admin logout
   app.post("/api/auth/logout", async (req, res) => {
+    // Clear the authentication cookie for secure logout
+    res.clearCookie('auth_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
     res.json({ success: true, message: "Logout successful" });
   });
 

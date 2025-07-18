@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -22,21 +23,22 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    // Generate UUID-based filename for security - never trust original filenames
+    const uuid = uuidv4();
     const ext = path.extname(file.originalname);
-    cb(null, `menu-item-${uniqueSuffix}${ext}`);
+    cb(null, `menu-item-${uuid}${ext}`);
   }
 });
 
-// File filter to only allow images
+// File filter - security hardened to only allow safe image types (no SVG for XSS prevention)
 const fileFilter = (req: any, file: any, cb: any) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+  // Only allow safe image types - SVG removed due to XSS vulnerability potential
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, and SVG images are allowed.'), false);
+    cb(new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed for security.'), false);
   }
 };
 
@@ -44,7 +46,9 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 2 * 1024 * 1024, // Reduced to 2MB limit for better performance and security
+    fileCount: 1, // Only allow single file uploads
+    fieldSize: 1024 * 1024, // 1MB field size limit
   }
 });
 

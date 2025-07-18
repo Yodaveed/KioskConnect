@@ -1,7 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMenuItemSchema, insertOrderSchema, insertUserSchema, insertMenuSchema, insertCartSchema } from "@shared/schema";
+import { 
+  enhancedInsertMenuItemSchema, 
+  enhancedInsertOrderSchema, 
+  enhancedInsertMenuSchema, 
+  enhancedInsertCartSchema,
+  loginSchema,
+  idParamSchema,
+  menuQuerySchema,
+  categoryQuerySchema
+} from "@shared/schema";
 import { z } from "zod";
 import { 
   asyncHandler, 
@@ -10,7 +19,10 @@ import {
   validateIdParam, 
   successResponse, 
   errorResponse,
-  globalErrorHandler 
+  globalErrorHandler,
+  generalApiLimit,
+  uploadRateLimit,
+  orderRateLimit
 } from "./middleware";
 import { upload, deleteUploadedFile, getFileUrl } from "./upload";
 import { printerService } from "./printer";
@@ -23,10 +35,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== SECURITY SETUP ====================
   await setupSecureAuth(app);
   
+  // Apply general rate limiting to all API routes for security
+  app.use('/api', generalApiLimit);
+  
   // ==================== STATIC FILE SERVING ====================
   
-  // Serve uploaded files
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Serve uploaded files with security headers
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+    maxAge: '1d', // Cache images for 1 day
+    setHeaders: (res, path) => {
+      // Security headers for static files
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day cache
+    }
+  }));
 
   // ==================== MENU TYPE ROUTES ====================
   
@@ -36,14 +58,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(successResponse(menus));
   }));
 
-  // POST /api/menus - Create new menu
+  // POST /api/menus - Create new menu with enhanced validation
   app.post("/api/menus", 
     authenticateAdmin,
+    uploadRateLimit, // Rate limit file uploads
     upload.single('image'),
+    validateBody(enhancedInsertMenuSchema),
     asyncHandler(async (req, res) => {
       let menuData = req.body;
       
-      // Handle uploaded image
+      // Handle uploaded image with validation
       if (req.file) {
         menuData.imageUrl = getFileUrl(req.file.filename);
       }
@@ -108,9 +132,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(successResponse(menuItems));
   }));
 
-  // POST /api/menu - Create new menu item
+  // POST /api/menu - Create new menu item with enhanced validation
   app.post("/api/menu", 
     authenticateAdmin,
+    uploadRateLimit, // Rate limit file uploads
     upload.single('image'),
     asyncHandler(async (req, res) => {
       let menuItemData = req.body;
@@ -158,8 +183,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         menuItemData.isRequired = menuItemData.isRequired === 'true';
       }
       
-      const validatedData = insertMenuItemSchema.parse(menuItemData);
+      // Use enhanced validation schema with comprehensive security checks
+      const validatedData = enhancedInsertMenuItemSchema.parse(menuItemData);
       const menuItem = await storage.createMenuItem(validatedData, menuIds);
+      
+      // Audit log for security compliance
+      console.log(`Menu item created: ${menuItem.name} (ID: ${menuItem.id}) by admin at ${new Date().toISOString()}`);
+      
       res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
     })
   );
@@ -298,21 +328,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(successResponse(menuItems));
   }));
 
-  // POST /api/menu-items - Create new menu item
+  // POST /api/menu-items - Create new menu item with enhanced validation
   app.post("/api/menu-items", 
-    validateBody(insertMenuItemSchema),
+    uploadRateLimit, // Rate limit file uploads
+    validateBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
       const menuItem = await storage.createMenuItem(req.body, []); // Empty array for backward compatibility
+      
+      // Audit log for security compliance
+      console.log(`Menu item created via API: ${menuItem.name} (ID: ${menuItem.id}) at ${new Date().toISOString()}`);
+      
       res.status(201).json(successResponse(menuItem, "Menu item created successfully"));
     })
   );
 
-  // PUT /api/menu-items/:id - Update menu item
+  // PUT /api/menu-items/:id - Update menu item with enhanced validation
   app.put("/api/menu-items/:id", 
     validateIdParam,
-    validatePartialBody(insertMenuItemSchema),
+    uploadRateLimit, // Rate limit updates with potential file uploads
+    validatePartialBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
       const menuItem = await storage.updateMenuItem(parseInt(req.params.id), req.body);
+      
+      // Audit log for security compliance
+      console.log(`Menu item updated via API: ${menuItem.name} (ID: ${menuItem.id}) at ${new Date().toISOString()}`);
+      
       res.json(successResponse(menuItem, "Menu item updated successfully"));
     })
   );
@@ -391,8 +431,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
-  // POST /api/orders - Create new order
-  app.post("/api/orders", asyncHandler(async (req, res) => {
+  // POST /api/orders - Create new order with enhanced validation and rate limiting
+  app.post("/api/orders", 
+    orderRateLimit, // Prevent rapid order spam
+    asyncHandler(async (req, res) => {
     // Validate customer name is provided
     if (!req.body.customerName?.trim()) {
       return res.status(400).json(errorResponse("Customer name is required"));
@@ -404,8 +446,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       status: "pending",
     };
     
-    const validatedData = insertOrderSchema.parse(orderData);
+    const validatedData = enhancedInsertOrderSchema.parse(orderData);
     const order = await storage.createOrder(validatedData);
+    
+    // Audit log for security compliance
+    console.log(`Order created: ${order.orderNumber} for ${order.customerName} - Total: $${order.totalAmount} at ${new Date().toISOString()}`);
     
     // SECURE AUTO-PRINT: Automatically print receipt on order placement
     try {
@@ -687,11 +732,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== CART ROUTES ====================
 
-  // POST /api/carts - Create new cart
+  // POST /api/carts - Create new cart with enhanced validation
   app.post("/api/carts", 
-    validateBody(insertCartSchema),
+    orderRateLimit, // Use order rate limiting for cart operations
+    validateBody(enhancedInsertCartSchema),
     asyncHandler(async (req, res) => {
       const cart = await storage.createCart(req.body);
+      
+      // Audit log for cart creation
+      console.log(`Cart created: ${cart.cartId} for ${cart.customerName} - Items: ${JSON.stringify(cart.items)} at ${new Date().toISOString()}`);
+      
       res.status(201).json(successResponse(cart, "Cart created successfully"));
     })
   );
@@ -705,11 +755,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(successResponse(cart));
   }));
 
-  // PUT /api/carts/:cartId - Update cart
+  // PUT /api/carts/:cartId - Update cart with enhanced validation
   app.put("/api/carts/:cartId", 
-    validatePartialBody(insertCartSchema),
+    orderRateLimit, // Rate limit cart updates
+    validatePartialBody(enhancedInsertCartSchema),
     asyncHandler(async (req, res) => {
       const cart = await storage.updateCart(req.params.cartId, req.body);
+      
+      // Audit log for cart updates
+      console.log(`Cart updated: ${cart.cartId} for ${cart.customerName} - Items: ${JSON.stringify(cart.items)} at ${new Date().toISOString()}`);
+      
       res.json(successResponse(cart, "Cart updated successfully"));
     })
   );

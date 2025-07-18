@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
+import rateLimit from 'express-rate-limit';
 
 // Error response interface
 interface ApiError {
@@ -16,11 +17,21 @@ export function successResponse<T>(data: T, message?: string) {
   };
 }
 
-// Error response wrapper  
+// Error response wrapper with enhanced security (no data leakage)
 export function errorResponse(error: string, details?: any): ApiError {
+  // Log full error details server-side for debugging
+  if (details) {
+    console.error('API Error:', {
+      error,
+      details: typeof details === 'object' ? JSON.stringify(details) : details,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
   return {
     error,
-    ...(details && { details })
+    // Never expose error details in production to prevent information leakage
+    ...(process.env.NODE_ENV === 'development' && details && { details })
   };
 }
 
@@ -83,17 +94,68 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// Global error handler
+// Enhanced rate limiting for different endpoint types
+export const createRateLimit = (windowMs: number, max: number, message: string) => 
+  rateLimit({
+    windowMs,
+    max,
+    message: { success: false, message },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Skip rate limiting for admin endpoints with valid tokens in development
+    skip: (req) => process.env.NODE_ENV === 'development' && req.headers.authorization?.startsWith('Bearer'),
+  });
+
+// Specific rate limits for different endpoints
+export const generalApiLimit = createRateLimit(
+  15 * 60 * 1000, // 15 minutes
+  100, // 100 requests per window
+  'Too many requests, please try again later'
+);
+
+export const uploadRateLimit = createRateLimit(
+  15 * 60 * 1000, // 15 minutes  
+  10, // 10 uploads per window
+  'Too many file uploads, please try again later'
+);
+
+export const orderRateLimit = createRateLimit(
+  5 * 60 * 1000, // 5 minutes
+  20, // 20 orders per window
+  'Too many orders, please slow down'
+);
+
+// Enhanced global error handler with security considerations
 export function globalErrorHandler(err: any, req: Request, res: Response, next: NextFunction) {
-  console.error('API Error:', err);
+  // Log comprehensive error details server-side
+  console.error("Global Error Handler:", {
+    error: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    userAgent: req.headers['user-agent'],
+    ip: req.ip
+  });
   
   if (res.headersSent) {
     return next(err);
   }
   
   if (err instanceof z.ZodError) {
-    return res.status(400).json(errorResponse("Validation failed", err.errors));
+    return res.status(400).json(errorResponse("Validation failed", 
+      process.env.NODE_ENV === 'development' ? err.errors : undefined));
   }
   
-  res.status(500).json(errorResponse("Internal server error"));
+  if (err.status) {
+    return res.status(err.status).json(errorResponse(
+      err.message || "Request failed",
+      process.env.NODE_ENV === 'development' ? err.details : undefined
+    ));
+  }
+  
+  // Generic error message for production security
+  res.status(500).json(errorResponse(
+    process.env.NODE_ENV === 'development' ? err.message : "Internal server error"
+  ));
 }
