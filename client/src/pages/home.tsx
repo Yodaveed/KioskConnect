@@ -107,11 +107,21 @@ export default function Home() {
           <p className="text-gray-600 text-xl">Select from our delicious menu options</p>
         </div>
 
+        {/* --- FIX FOR ACCESSIBILITY & IMAGE SUPPORT IN MENU CARDS --- */}
+        {/* 1. Card is keyboard-accessible and selectable by Enter/Space. */}
+        {/* 2. Card uses aria-label for screen readers. */}
+        {/* 3. Menu images are shown if present, with alt text for accessibility. */}
+        {/* 4. Fallback to IceCream icon if no image exists. */}
+        {/* 5. Button uses clear aria-label for screen readers. */}
+        {/* 6. Card and button use clear focus and hover styles for kiosk UX. */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" role="group" aria-label="Menu selection">
           {(menus as Menu[]).map((menu: Menu) => (
             <Card
               key={menu.id}
-              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              tabIndex={0} // Make the card keyboard focusable
+              aria-label={`Select ${menu.name} menu - ${menu.description || ''}`}
+              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary focus:shadow-lg btn-focus"
+              // Handle keyboard selection as well as click
               onClick={() => handleMenuSelect(menu)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -119,17 +129,29 @@ export default function Home() {
                   handleMenuSelect(menu);
                 }
               }}
-              tabIndex={0}
-              role="button"
-              aria-label={`Select ${menu.name} menu - ${menu.description}`}
             >
               <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <IceCream className="text-2xl text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-dark-slate mb-2">{menu.name}</h3>
-                <p className="text-gray-600 text-sm mb-4">{menu.description}</p>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                {/* Show menu image if available, otherwise fallback to icon */}
+                {menu.imageUrl ? (
+                  <img
+                    src={menu.imageUrl}
+                    alt={`${menu.name} preview`}
+                    className="w-20 h-20 mx-auto mb-4 rounded-lg shadow object-cover"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <IceCream className="w-10 h-10 text-white" aria-hidden="true" />
+                  </div>
+                )}
+
+                <div className="text-2xl font-bold mb-2 text-dark-slate">{menu.name}</div>
+                <div className="text-muted-foreground mb-4 text-sm">{menu.description}</div>
+
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90 text-white focus:ring-2 focus:ring-primary focus:ring-offset-2 btn-focus"
+                  aria-label={`Start ${menu.name} order`}
+                  tabIndex={-1} // Card handles focus, not individual button
+                >
                   Start Order
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Button>

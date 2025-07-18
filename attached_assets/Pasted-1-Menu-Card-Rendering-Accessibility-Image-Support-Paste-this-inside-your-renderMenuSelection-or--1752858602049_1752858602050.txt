@@ -1,0 +1,67 @@
+1. Menu Card Rendering: Accessibility + Image Support
+Paste this inside your renderMenuSelection or equivalent in pages/home.tsx:
+jsx
+Copy
+Edit
+<div
+  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+  role="group"
+  aria-label="Menu selection"
+>
+  {menus.map(menu => (
+    <Card
+      key={menu.id}
+      tabIndex={0} // Make the card keyboard focusable
+      aria-label={`Select ${menu.name} menu - ${menu.description || ''}`}
+      className="cursor-pointer transition-all hover:shadow-lg focus:shadow-lg"
+      // Handle keyboard selection as well as click
+      onClick={() => handleMenuSelect(menu)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') handleMenuSelect(menu);
+      }}
+    >
+      <CardContent className="p-8 text-center">
+        {/* Show menu image if available, otherwise fallback to icon */}
+        {menu.imageUrl ? (
+          <img
+            src={menu.imageUrl}
+            alt={`${menu.name} preview`}
+            className="w-20 h-20 mx-auto mb-2 rounded shadow"
+            style={{ objectFit: 'cover' }}
+          />
+        ) : (
+          <IceCream className="w-20 h-20 mx-auto mb-2" aria-hidden="true" />
+        )}
+
+        <div className="text-2xl font-bold mb-2">{menu.name}</div>
+        <div className="text-muted-foreground mb-4">{menu.description}</div>
+
+        <Button
+          className="w-full bg-primary hover:bg-primary/90 text-white focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          aria-label={`Start ${menu.name} order`}
+        >
+          Start Order
+          <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+        </Button>
+      </CardContent>
+    </Card>
+  ))}
+</div>
+Paste this anywhere you need a menu card (guest or admin preview) to guarantee accessibility and image support.
+2. Add Comments for the AI Agent:
+Add these above your paste to make the Replit AI agent understand your reasoning:
+
+js
+Copy
+Edit
+// --- FIX FOR ACCESSIBILITY & IMAGE SUPPORT IN MENU CARDS ---
+// 1. Card is keyboard-accessible and selectable by Enter/Space.
+// 2. Card uses aria-label for screen readers.
+// 3. Menu images are shown if present, with alt text for accessibility.
+// 4. Fallback to IceCream icon if no image exists.
+// 5. Button uses clear aria-label for screen readers.
+// 6. Card and button use clear focus and hover styles for kiosk UX.
+3. Double-Check These Points in the Rest of the File:
+Error and loading states already addressed (spinner and red error message).
+
+Menu selection logic (handleMenuSelect) does not need to change unless you want to add analytics/event logging.
