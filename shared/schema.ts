@@ -14,6 +14,7 @@ export const menus = pgTable("menus", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  imageUrl: text("image_url"),
   isActive: boolean("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
   orderingFlow: text("ordering_flow").default("three-step"), // "three-step", "single-page", "custom"

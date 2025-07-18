@@ -39,9 +39,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/menus - Create new menu
   app.post("/api/menus", 
     authenticateAdmin,
-    validateBody(insertMenuSchema),
+    upload.single('image'),
     asyncHandler(async (req, res) => {
-      const menu = await storage.createMenu(req.body);
+      let menuData = req.body;
+      
+      // Handle uploaded image
+      if (req.file) {
+        menuData.imageUrl = getFileUrl(req.file.filename);
+      }
+      
+      const menu = await storage.createMenu(menuData);
       res.status(201).json(successResponse(menu, "Menu created successfully"));
     })
   );
@@ -50,9 +57,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/menus/:id", 
     authenticateAdmin,
     validateIdParam,
-    validatePartialBody(insertMenuSchema),
+    upload.single('image'),
     asyncHandler(async (req, res) => {
-      const menu = await storage.updateMenu(parseInt(req.params.id), req.body);
+      let menuData = req.body;
+      
+      // Handle uploaded image
+      if (req.file) {
+        menuData.imageUrl = getFileUrl(req.file.filename);
+      }
+      
+      const menu = await storage.updateMenu(parseInt(req.params.id), menuData);
       res.json(successResponse(menu, "Menu updated successfully"));
     })
   );
@@ -62,6 +76,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
+      // Get menu to delete associated image file
+      const menu = await storage.getMenuById(parseInt(req.params.id));
+      if (menu && menu.imageUrl && menu.imageUrl.startsWith('/uploads/')) {
+        const filename = path.basename(menu.imageUrl);
+        await deleteUploadedFile(filename);
+      }
+      
       await storage.deleteMenu(parseInt(req.params.id));
       res.json(successResponse(null, "Menu deleted successfully"));
     })

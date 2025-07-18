@@ -18,10 +18,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Menu } from "@shared/schema";
+import ImageUpload from "@/components/ui/image-upload-fixed";
 
 const menuSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  imageUrl: z.string().optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.number().default(0),
   orderingFlow: z.enum(["three-step", "single-page", "custom"]).default("three-step"),
@@ -43,6 +45,7 @@ export default function MenuTypesTab() {
     defaultValues: {
       name: "",
       description: "",
+      imageUrl: "",
       isActive: true,
       sortOrder: 0,
       orderingFlow: "three-step",
@@ -51,8 +54,31 @@ export default function MenuTypesTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MenuForm) => {
-      const response = await apiRequest("POST", "/api/menus", data);
-      return response.json();
+      const formData = new FormData();
+      
+      // Append all form fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+      
+      const token = localStorage.getItem('ic_pasta_admin_token');
+      
+      const response = await fetch("/api/menus", {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create menu");
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menus"] });
@@ -74,8 +100,31 @@ export default function MenuTypesTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuForm }) => {
-      const response = await apiRequest("PUT", `/api/menus/${id}`, data);
-      return response.json();
+      const formData = new FormData();
+      
+      // Append all form fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+      
+      const token = localStorage.getItem('ic_pasta_admin_token');
+      
+      const response = await fetch(`/api/menus/${id}`, {
+        method: "PUT",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update menu");
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menus"] });
@@ -129,6 +178,7 @@ export default function MenuTypesTab() {
     form.reset({
       name: menu.name,
       description: menu.description || "",
+      imageUrl: menu.imageUrl || "",
       isActive: Boolean(menu.isActive),
       sortOrder: Number(menu.sortOrder || 0),
       orderingFlow: (menu.orderingFlow as "three-step" | "single-page" | "custom") || "three-step",
@@ -195,6 +245,24 @@ export default function MenuTypesTab() {
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          disabled={createMutation.isPending || updateMutation.isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="sortOrder"
@@ -295,9 +363,17 @@ export default function MenuTypesTab() {
                 <TableRow key={menu.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary bg-opacity-20 rounded-full flex items-center justify-center">
-                        <MenuIcon className="h-5 w-5 text-primary" />
-                      </div>
+                      {menu.imageUrl ? (
+                        <img
+                          src={menu.imageUrl}
+                          alt={`${menu.name} image`}
+                          className="w-10 h-10 object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-primary bg-opacity-20 rounded-full flex items-center justify-center">
+                          <MenuIcon className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
                       <div>
                         <div className="font-medium text-gray-900">{menu.name}</div>
                         <div className="text-sm text-gray-500">{menu.description}</div>
