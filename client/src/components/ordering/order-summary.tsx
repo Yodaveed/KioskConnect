@@ -30,7 +30,7 @@ export default function OrderSummary() {
       const orderData = {
         totalAmount: totalPrice.toFixed(2),
         items: {
-          bases: order.bases,
+          base: order.base,
           sauces: order.sauces,
           toppings: order.toppings,
         },
@@ -62,7 +62,7 @@ export default function OrderSummary() {
         menuType: getMenuTypeName(),
         orderNumber: data.orderNumber,
         orderData: {
-          bases: order.bases,
+          base: order.base,
           sauces: order.sauces,
           toppings: order.toppings,
           totalAmount: totalPrice.toFixed(2)
@@ -148,7 +148,7 @@ export default function OrderSummary() {
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
       const orderDataForCart = {
-        bases: order.bases,
+        base: order.base,
         sauces: order.sauces,
         toppings: order.toppings,
         totalAmount: totalPrice.toFixed(2)
@@ -185,24 +185,20 @@ export default function OrderSummary() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Base Selection */}
-          {order.bases.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Bases</h4>
-              {order.bases.map((base, index) => (
-                <div key={index} className="flex justify-between items-center mb-1">
-                  <div className="flex items-center gap-2">
-                    <span>{base.name}</span>
-                    {base.price > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        Premium
-                      </Badge>
-                    )}
+          {order.base && (
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-semibold">{order.base.name}</h4>
+                <p className="text-sm text-gray-600">Base</p>
+              </div>
+              <div className="text-right">
+                <div className="font-bold">${order.base.price.toFixed(2)}</div>
+                {order.base.modifiers && order.base.modifiers.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    {order.base.modifiers.map(mod => `+${mod.name}`).join(', ')}
                   </div>
-                  <div className="font-medium">
-                    ${base.price.toFixed(2)}
-                  </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           )}
 

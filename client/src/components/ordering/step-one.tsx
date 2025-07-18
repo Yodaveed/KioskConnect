@@ -3,12 +3,11 @@ import { ArrowRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useOrder } from "@/hooks/use-order";
 import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepOne() {
-  const { toggleBase, setStep, order, selectedMenuId } = useOrder();
+  const { selectBase, setStep, order, selectedMenuId } = useOrder();
 
   const { data: baseItems = [], isLoading } = useQuery({
     queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
@@ -35,15 +34,11 @@ export default function StepOne() {
     return basePrice;
   };
 
-  const getSelectedBaseCount = () => {
-    return order.bases.length;
-  };
-
-  const handleToggleBase = (item: MenuItem) => {
+  const handleSelectBase = (item: MenuItem) => {
     // Don't allow selection of sold-out items
     if (item.isSoldOut) return;
     
-    toggleBase({
+    selectBase({
       id: item.id,
       name: item.name,
       category: item.category,
@@ -53,16 +48,9 @@ export default function StepOne() {
   };
 
   const handleContinue = () => {
-    setStep(2);
-  };
-
-  const handleSkip = () => {
-    // Clear all bases and continue
-    setStep(2);
-  };
-
-  const isBaseSelected = (itemId: number) => {
-    return order.bases.some(base => base.id === itemId);
+    if (order.base) {
+      setStep(2);
+    }
   };
 
   if (isLoading) {
@@ -80,74 +68,80 @@ export default function StepOne() {
         <p className="text-gray-600 text-lg">Select your ice cream base flavor</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {baseItems.map((item: MenuItem) => {
-          const isSelected = isBaseSelected(item.id);
-          const price = parseFloat(item.price);
-
-          return (
-            <Card
-              key={item.id}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                isSelected
-                  ? "border-2 border-primary shadow-lg bg-primary/5"
-                  : "border-2 border-transparent hover:border-primary"
-              }`}
-              onClick={() => handleToggleBase(item)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    checked={isSelected}
-                    onChange={() => handleToggleBase(item)}
-                    disabled={item.isSoldOut}
-                    className="text-primary"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-dark-slate">{item.name}</h4>
-                      {item.isPremium && (
-                        <Badge variant="outline" className="text-accent border-accent text-xs">
-                          Premium
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-primary">
-                        ${price.toFixed(2)}
-                      </p>
-                      {getSelectedBaseCount() >= 1 && (
-                        <Badge variant="outline" className="text-xs">
-                          +$1.00 after 1st
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {baseItems.map((item: MenuItem) => (
+          <Card
+            key={item.id}
+            className={`transition-all duration-200 ${
+              item.isSoldOut
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:shadow-lg"
+            } ${
+              order.base?.id === item.id
+                ? "border-2 border-primary shadow-lg bg-primary/5"
+                : "border-2 border-transparent hover:border-primary"
+            }`}
+            onClick={() => handleSelectBase(item)}
+          >
+            <CardContent className="p-6 text-center">
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-primary/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <div className="text-4xl">🍨</div>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              )}
+              
+              <h3 className="text-xl font-semibold text-dark-slate mb-2">{item.name}</h3>
+              <p className="text-gray-600 text-sm mb-4">{item.description}</p>
+              
+              <div className="flex items-center justify-center gap-2 mb-2">
+                {item.isSoldOut && (
+                  <Badge variant="destructive" className="text-xs">
+                    SOLD OUT
+                  </Badge>
+                )}
+                {item.isPremium && (
+                  <Badge variant="secondary" className="text-xs">
+                    Premium
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="text-primary font-bold text-lg">${parseFloat(item.price).toFixed(2)}</div>
+                {item.isPremium && (
+                  <Badge variant="outline" className="text-accent border-accent">
+                    Premium
+                  </Badge>
+                )}
+              </div>
+              
+              {order.base?.id === item.id && (
+                <div className="mt-2">
+                  <Badge variant="default" className="bg-primary text-white">
+                    Selected
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="mt-8 flex justify-end">
-        <div className="flex gap-4">
-          <Button
-            onClick={handleSkip}
-            variant="outline"
-            className="px-8 py-3 rounded-full font-medium"
-          >
-            Skip Bases
-          </Button>
-          <Button
-            onClick={handleContinue}
-            className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
-          >
-            Continue to Sauce
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
+        <Button
+          onClick={handleContinue}
+          disabled={!order.base}
+          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:transform-none"
+        >
+          Continue to Sauce
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
       </div>
     </div>
   );

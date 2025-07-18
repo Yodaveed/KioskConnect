@@ -37,7 +37,7 @@ export const useOrder = create<OrderState>()(
       currentStep: 0, // Start at 0 for menu selection
       selectedMenuId: undefined,
       order: {
-        bases: [],
+        base: null,
         sauces: [],
         toppings: [],
       },
@@ -48,25 +48,10 @@ export const useOrder = create<OrderState>()(
 
       setSelectedMenuId: (menuId) => set({ selectedMenuId: menuId }),
 
-      toggleBase: (item) => {
-        set((state) => {
-          const existingIndex = state.order.bases.findIndex(
-            (base) => base.id === item.id
-          );
-          
-          let newBases;
-          if (existingIndex !== -1) {
-            newBases = state.order.bases.filter(
-              (base) => base.id !== item.id
-            );
-          } else {
-            newBases = [...state.order.bases, item];
-          }
-          
-          return {
-            order: { ...state.order, bases: newBases },
-          };
-        });
+      selectBase: (item) => {
+        set((state) => ({
+          order: { ...state.order, base: item },
+        }));
         get().calculateTotal();
       },
 
@@ -118,13 +103,13 @@ export const useOrder = create<OrderState>()(
         const state = get();
         let total = 0;
         
-        // Calculate bases total
-        state.order.bases.forEach((base) => {
-          total += base.price;
-          if (base.modifiers) {
-            total += base.modifiers.reduce((sum, mod) => sum + mod.price, 0);
+        // Calculate base total
+        if (state.order.base) {
+          total += state.order.base.price;
+          if (state.order.base.modifiers) {
+            total += state.order.base.modifiers.reduce((sum, mod) => sum + mod.price, 0);
           }
-        });
+        }
         
         // Calculate sauces total
         state.order.sauces.forEach((sauce) => {
@@ -144,7 +129,7 @@ export const useOrder = create<OrderState>()(
           currentStep: 0,
           selectedMenuId: undefined,
           order: {
-            bases: [],
+            base: null,
             sauces: [],
             toppings: [],
           },
