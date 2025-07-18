@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { debounce } from "@/lib/debounce";
 import type { MenuItem } from "@shared/schema";
 
 interface PintSelection {
@@ -21,6 +22,9 @@ export default function PintsFlow() {
   const { isActive, addItem, setCartId } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Create debounced version of addItem to prevent rapid API calls
+  const debouncedAddItem = debounce(addItem, 300);
   const [selections, setSelections] = useState<PintSelection>({});
 
   const { data: pints = [], isLoading } = useQuery({
@@ -136,7 +140,7 @@ export default function PintsFlow() {
       const customerNameElement = document.querySelector('[data-customer-name]');
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
-      addItem({
+      debouncedAddItem({
         customerName,
         menuType: "Pints",
         orderData: customOrder,
@@ -155,7 +159,7 @@ export default function PintsFlow() {
       const customerNameElement = document.querySelector('[data-customer-name]');
       const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
-      addItem({
+      debouncedAddItem({
         customerName,
         menuType: "Pints",
         orderData: customOrder,

@@ -9,12 +9,16 @@ import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { debounce } from "@/lib/debounce";
 
 export default function OrderSummary() {
   const { order, totalPrice, setStep, setOrderNumber, selectedMenuId, resetOrder } = useOrder();
   const { isActive, addItem, setCartId, items, clearCart, getCartTotal } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Create debounced version of addItem to prevent rapid API calls
+  const debouncedAddItem = debounce(addItem, 300);
 
   const getMenuTypeName = () => {
     switch(selectedMenuId) {
@@ -48,8 +52,8 @@ export default function OrderSummary() {
         const customerNameElement = document.querySelector('[data-customer-name]');
         const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
         
-        // Add item to cart
-        addItem({
+        // Add item to cart (debounced to prevent rapid calls)
+        debouncedAddItem({
           customerName,
           menuType: getMenuTypeName(),
           orderData: order,
@@ -154,7 +158,7 @@ export default function OrderSummary() {
         totalAmount: totalPrice.toFixed(2)
       };
       
-      addItem({
+      debouncedAddItem({
         customerName,
         menuType: getMenuTypeName(),
         orderData: orderDataForCart,

@@ -160,6 +160,12 @@ Changelog:
 - July 18, 2025. Fixed kiosk menu filtering to properly display only items assigned to specific menus
 - July 18, 2025. Corrected query key format in ordering components to properly pass menuId parameter
 - July 18, 2025. Kiosk now perfectly syncs with admin menu item assignments
+- July 18, 2025. Implemented comprehensive cart logic enhancements with professional-grade UX improvements
+- July 18, 2025. Added debounced add/remove operations (300ms) to prevent rapid API calls and race conditions
+- July 18, 2025. Enhanced accessibility with ARIA labels, keyboard navigation, and proper error handling
+- July 18, 2025. Improved cart submission with empty cart validation, tooltips, and automatic cart ID regeneration
+- July 18, 2025. Added per-user subtotals display, join cart error handling with auto-focus retry functionality
+- July 18, 2025. Created shared debounce utility for consistent cart operations across all ordering components
 ```
 
 ## User Preferences

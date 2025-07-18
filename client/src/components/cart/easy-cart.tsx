@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,24 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+import { debounce } from '@/lib/debounce';
+
+// --- CART LOGIC FIXES ---
+// 1. Add debounce to addItem/removeItem to prevent rapid API calls.
+// 2. Disable submit button for empty cart, with tooltip explaining why.
+// 3. Show per-user subtotals in group cart view.
+// 4. Ensure all cart action buttons have aria-labels and proper accessibility attributes.
+// 5. After order submission, regenerate a new cart ID to prevent reuse.
+// 6. On join cart failure, show clear toast and auto-focus join input for retry.
+// 7. Confirm all toasts and button states match current cart logic.
 
 export default function EasyCart() {
   const [joinCartId, setJoinCartId] = useState('');
   const [copied, setCopied] = useState(false);
+  const [joinError, setJoinError] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const joinInputRef = useRef<HTMLInputElement>(null);
   
   const { 
     cartId, 
@@ -26,6 +38,9 @@ export default function EasyCart() {
     getCartTotal,
     addItem 
   } = useCart();
+
+  // Create debounced versions of add/remove functions
+  const debouncedRemoveItem = useCallback(debounce(removeItem, 300), [removeItem]);
 
   // Group cart submission mutation
   const submitCartMutation = useMutation({
@@ -50,6 +65,10 @@ export default function EasyCart() {
         description: `Order #${data.orderNumber} is being prepared for your group.`
       });
       clearCart(); // Clear cart after successful submission
+      
+      // Generate new cart ID to prevent reuse
+      const newId = generateFriendlyCartId();
+      setCartId(newId);
     },
     onError: (error: any) => {
       toast({
@@ -80,12 +99,26 @@ export default function EasyCart() {
 
   const handleJoinCart = () => {
     if (joinCartId.trim()) {
-      setCartId(joinCartId.trim());
-      setJoinCartId('');
-      toast({
-        title: "Joined Cart!",
-        description: `You're now part of the "${joinCartId.trim()}" group cart.`
-      });
+      try {
+        setCartId(joinCartId.trim());
+        setJoinCartId('');
+        setJoinError(false);
+        toast({
+          title: "Joined Cart!",
+          description: `You're now part of the "${joinCartId.trim()}" group cart.`
+        });
+      } catch (error) {
+        setJoinError(true);
+        toast({
+          title: "Join Failed",
+          description: "Unable to join cart. Please check the cart name and try again.",
+          variant: "destructive"
+        });
+        // Auto-focus input for retry
+        if (joinInputRef.current) {
+          joinInputRef.current.focus();
+        }
+      }
     }
   };
 
@@ -145,8 +178,9 @@ export default function EasyCart() {
                   onClick={handleCreateCart} 
                   className="w-full h-12 text-lg"
                   size="lg"
+                  aria-label="Create a new group cart for sharing with friends"
                 >
-                  <Users className="h-5 w-5 mr-2" />
+                  <Users className="h-5 w-5 mr-2" aria-hidden="true" />
                   Start Group Cart
                 </Button>
               </div>
@@ -172,10 +206,20 @@ export default function EasyCart() {
               
               <div className="space-y-2">
                 <Input
+                  ref={joinInputRef}
                   placeholder="Enter cart name (e.g. FreshIce123)"
                   value={joinCartId}
-                  onChange={(e) => setJoinCartId(e.target.value)}
-                  className="text-center text-lg h-12"
+                  onChange={(e) => {
+                    setJoinCartId(e.target.value);
+                    setJoinError(false);
+                  }}
+                  className={`text-center text-lg h-12 ${joinError ? 'border-red-500 focus:border-red-500' : ''}`}
+                  aria-label="Enter group cart name to join"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && joinCartId.trim()) {
+                      handleJoinCart();
+                    }
+                  }}
                 />
                 <Button 
                   onClick={handleJoinCart} 
@@ -183,8 +227,9 @@ export default function EasyCart() {
                   variant="outline"
                   className="w-full h-12"
                   size="lg"
+                  aria-label="Join the group cart with entered name"
                 >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  <ShoppingCart className="h-4 w-4 mr-2" aria-hidden="true" />
                   Join Group Cart
                 </Button>
               </div>
@@ -210,8 +255,9 @@ export default function EasyCart() {
               variant="outline"
               onClick={copyCartId}
               className="flex items-center gap-1"
+              aria-label={copied ? "Cart ID copied to clipboard" : "Copy cart ID to share with group"}
             >
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3 w-3" aria-hidden="true" /> : <Copy className="h-3 w-3" aria-hidden="true" />}
               {copied ? 'Copied!' : 'Share'}
             </Button>
           </CardTitle>
@@ -250,7 +296,9 @@ export default function EasyCart() {
                   <div key={customerName} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-medium text-lg">{customerName}</div>
-                      <Badge>${customerTotal.toFixed(2)}</Badge>
+                      <Badge className="text-sm px-2 py-1" aria-label={`${customerName} subtotal: $${customerTotal.toFixed(2)}`}>
+                        ${customerTotal.toFixed(2)}
+                      </Badge>
                     </div>
                     
                     <div className="space-y-2">
@@ -262,9 +310,11 @@ export default function EasyCart() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => debouncedRemoveItem(item.id)}
+                              aria-label={`Remove ${item.menuType} order for ${item.customerName}`}
+                              className="hover:bg-red-50 hover:text-red-600"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3 w-3" aria-hidden="true" />
                             </Button>
                           </div>
                         </div>
@@ -285,17 +335,19 @@ export default function EasyCart() {
             <>
               <Button 
                 onClick={() => submitCartMutation.mutate()}
-                disabled={submitCartMutation.isPending}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
+                disabled={items.length === 0 || submitCartMutation.isPending}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500"
+                title={items.length === 0 ? "Add items to cart before submitting!" : ""}
+                aria-label={items.length === 0 ? "Submit cart - disabled: no items" : `Submit group cart order totaling $${getCartTotal().toFixed(2)}`}
               >
                 {submitCartMutation.isPending ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" aria-hidden="true"></div>
                     Submitting...
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
+                    <Send className="h-4 w-4 mr-2" aria-hidden="true" />
                     Submit Cart (${getCartTotal().toFixed(2)})
                   </>
                 )}
@@ -305,8 +357,9 @@ export default function EasyCart() {
                 onClick={handleAddToThisOrder}
                 variant="outline"
                 className="w-full"
+                aria-label={`Add another order to cart ${cartId}`}
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
+                <ShoppingCart className="h-4 w-4 mr-2" aria-hidden="true" />
                 Add to This Order
               </Button>
             </>
@@ -315,14 +368,19 @@ export default function EasyCart() {
           <Button 
             onClick={() => {
               clearCart();
+              // Generate new cart ID after clearing to prevent reuse
+              const newId = generateFriendlyCartId();
+              setCartId(newId);
               toast({
                 title: "Cart Cleared",
-                description: "All items have been removed from the cart."
+                description: `All items removed. New cart ID: ${newId}`
               });
             }} 
             variant="outline" 
-            className="w-full"
+            className="w-full hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+            aria-label="Clear all items from cart and generate new cart ID"
           >
+            <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
             Clear Cart
           </Button>
         </CardContent>

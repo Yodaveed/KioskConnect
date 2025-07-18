@@ -1,0 +1,86 @@
+1. Prevent Rapid Add/Remove (Debounce)
+
+Issue: addItem and removeItem could be triggered rapidly, causing race conditions or API spam.
+
+Fix:
+Add a simple debounce function for add/remove:
+
+js
+Copy
+Edit
+// At the top of the file
+const debounce = (fn, delay = 300) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+};
+
+// When using addItem/removeItem:
+const debouncedAddItem = debounce(addItem);
+const debouncedRemoveItem = debounce(removeItem);
+
+// Then replace usage in the JSX:
+// onClick={() => debouncedAddItem(...)}
+// onClick={() => debouncedRemoveItem(...)}
+2. Disable Submit Button for Empty Cart
+
+Issue: User can attempt to submit a cart with no items.
+
+Fix:
+Disable submit button and show a tooltip when the cart is empty.
+
+jsx
+Copy
+Edit
+<Button
+  onClick={() => submitCartMutation.mutate()}
+  disabled={items.length === 0}
+  title={items.length === 0 ? "Add items to cart before submitting!" : ""}
+  className="w-full bg-primary text-white"
+>
+  Submit Order
+</Button>
+3. Per-User Subtotals (Optional)
+
+Enhancement: Show subtotals per person for group orders.
+
+jsx
+Copy
+Edit
+{items.map(item => (
+  <div key={item.customerName} className="flex justify-between">
+    <span>{item.customerName}</span>
+    <span>${item.totalPrice.toFixed(2)}</span>
+  </div>
+))}
+4. Accessibility (A11y)
+
+Add: aria-label to all major buttons, ensure all icons have aria-hidden or descriptive text, and tab navigation is logical.
+
+Example:
+
+jsx
+Copy
+Edit
+<Button aria-label="Submit group cart order" ...>Submit Order</Button>
+<Trash2 aria-hidden="true" />
+5. Edge Cases
+
+Cart ID: Prevent group from using same cart ID after order is submitted (regenerate on clear).
+
+Join Cart: Show a clear error if join fails, and focus input for retry.
+
+Paste these notes/comments for the AI Agent:
+js
+Copy
+Edit
+// --- CART LOGIC FIXES ---
+// 1. Add debounce to addItem/removeItem to prevent rapid API calls.
+// 2. Disable submit button for empty cart, with tooltip explaining why.
+// 3. Show per-user subtotals in group cart view.
+// 4. Ensure all cart action buttons have aria-labels and proper accessibility attributes.
+// 5. After order submission, regenerate a new cart ID to prevent reuse.
+// 6. On join cart failure, show clear toast and auto-focus join input for retry.
+// 7. Confirm all toasts and button states match current cart logic.
