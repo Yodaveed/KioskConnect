@@ -85,8 +85,13 @@ export default function MenuTab() {
         }
       });
       
+      const token = localStorage.getItem('ic_pasta_admin_token');
+      
       const response = await fetch("/api/menu", {
         method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
       
@@ -130,8 +135,13 @@ export default function MenuTab() {
         }
       });
       
+      const token = localStorage.getItem('ic_pasta_admin_token');
+      
       const response = await fetch(`/api/menu/${id}`, {
         method: "PUT",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
       

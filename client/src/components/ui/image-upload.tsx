@@ -55,13 +55,20 @@ export default function ImageUpload({
       const formData = new FormData();
       formData.append('image', file);
 
+      // Get admin token for authorization
+      const token = localStorage.getItem('ic_pasta_admin_token');
+      
       const response = await fetch('/api/upload/menu-item-image', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
       }
 
       const result = await response.json();
