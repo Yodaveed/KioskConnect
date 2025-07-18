@@ -60,6 +60,12 @@ export default function Home() {
     queryKey: ["/api/menus"],
   });
 
+  // Sort menus by featured status or popularity
+  const sortedMenus = [...menus].sort((a, b) => {
+    // Featured menus first, then by order of creation
+    return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+  });
+
   const handleMenuSelect = (menu: Menu) => {
     setSelectedMenu(menu);
     setSelectedMenuId(menu.id);
@@ -115,7 +121,7 @@ export default function Home() {
         {/* 5. Button uses clear aria-label for screen readers. */}
         {/* 6. Card and button use clear focus and hover styles for kiosk UX. */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" role="group" aria-label="Menu selection">
-          {(menus as Menu[]).map((menu: Menu) => (
+          {sortedMenus.map((menu: Menu) => (
             <Card
               key={menu.id}
               tabIndex={0} // Make the card keyboard focusable

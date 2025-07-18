@@ -66,8 +66,21 @@ export default function StepTwo() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex justify-center items-center h-64" role="status" aria-live="polite">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true"></div>
+        <span className="sr-only">Loading sauce options...</span>
+      </div>
+    );
+  }
+
+  if (sauceItems.length === 0) {
+    return (
+      <div className="text-center py-16" role="alert">
+        <h2 className="text-2xl font-bold text-gray-600 mb-4">No Sauce Options Available</h2>
+        <p className="text-gray-500">Skip this step or contact staff for assistance.</p>
+        <Button onClick={handleSkip} className="mt-4" aria-label="Skip sauce selection and continue">
+          Skip to Toppings
+        </Button>
       </div>
     );
   }
@@ -79,7 +92,7 @@ export default function StepTwo() {
         <p className="text-gray-600 text-lg">Select up to 2 sauces (additional sauces +$0.25 each)</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="group" aria-label="Sauce options">
         {sauceItems.map((item: MenuItem) => {
           const isSelected = isSauceSelected(item.id);
           const price = parseFloat(item.price.toString());
@@ -87,12 +100,27 @@ export default function StepTwo() {
           return (
             <Card
               key={item.id}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+              tabIndex={item.isSoldOut ? -1 : 0}
+              role="button"
+              aria-label={`${item.name} sauce, $${price.toFixed(2)}${item.isSoldOut ? ' - sold out' : ''}${isSelected ? ' - selected' : ''}`}
+              aria-pressed={isSelected}
+              aria-disabled={item.isSoldOut}
+              className={`cursor-pointer transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                item.isSoldOut
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              } ${
                 isSelected
                   ? "border-2 border-primary shadow-lg bg-primary/5"
                   : "border-2 border-transparent hover:border-primary"
               }`}
               onClick={() => handleToggleSauce(item)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleToggleSauce(item);
+                }
+              }}
             >
               <CardContent className="p-4">
                 <div className="flex items-center space-x-3">

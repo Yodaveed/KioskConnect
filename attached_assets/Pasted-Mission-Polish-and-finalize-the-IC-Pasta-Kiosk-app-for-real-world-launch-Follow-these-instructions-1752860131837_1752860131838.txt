@@ -1,0 +1,187 @@
+Mission:
+Polish and finalize the IC Pasta Kiosk app for real-world launch.
+Follow these instructions step-by-step, and confirm all fixes are applied and tested.
+
+1. Guest/Customer Flow (Front-End):
+Accessibility & Usability:
+
+All interactive elements (cards, buttons, steps) must be fully keyboard-accessible (tabIndex=0, aria-label, onKeyDown for Enter/Space).
+
+Use real menu images if available; fallback to icon if not.
+
+Announce important states/changes to screen readers (aria-live).
+
+Menu Browsing:
+
+Show spinner/loader when menus are loading.
+
+Show clear error message if menu fetch fails.
+
+Sort menus by popularity or “featured” flag (optional, if easily supported).
+
+Ordering Steps:
+
+Display “first X free, extras +$Y” logic with clear, itemized prices.
+
+For all steps, selected cards should be visually highlighted (color/border/animation).
+
+Show “Continue” as disabled until all required selections are made.
+
+If a category (base/sauce/topping) is empty, show a user-friendly message.
+
+Support for “skip” buttons where appropriate (sauces/toppings optional).
+
+Cart & Group Orders:
+
+Debounce rapid add/remove to prevent duplicate items.
+
+Do not allow order submission with empty cart; disable button and show tooltip/explanation.
+
+Show per-person subtotal in group cart.
+
+All cart action buttons must have accessible labels and tooltips.
+
+On cart join failure, show clear error and refocus input.
+
+After order submission, auto-clear or regenerate cart ID.
+
+Order Summary & Confirmation:
+
+Display all items, modifiers, and subtotal/tax/total line-by-line.
+
+Disable “Place Order” button while processing.
+
+Show clear error if submission fails (network, validation).
+
+Confirmation screen: show large, readable order number, announce to screen readers, and display clear next steps (“Show this at the counter”).
+
+“Start New Order” and “Add to This Order” actions must be present and accessible.
+
+If order number is missing or API fails, show “See staff for help.”
+
+2. Printing Logic (REQUIRED):
+No guest can print orders.
+
+Every order fired (placed by a guest) is printed automatically to the receipt printer by the server.
+
+Printing logic is never exposed to the guest UI or browser.
+
+Admin/Staff can reprint an order from the admin/order panel only.
+
+Use a server-side print integration (e.g., node-thermal-printer or equivalent) to format and send orders to the receipt printer.
+
+Printer logic must only be callable from authenticated staff/admin endpoints.
+
+3. Admin & Staff Dashboard:
+Authentication:
+
+All admin pages require valid JWT/token stored in localStorage.ic_pasta_admin_token.
+
+No use of legacy adminAuth boolean anywhere.
+
+On all API/admin calls, include Authorization: Bearer <token>.
+
+On logout, clear the token and redirect to /admin.
+
+All protected endpoints validated server-side.
+
+Menu Management:
+
+Add/edit/delete menu items with live updates to guest view.
+
+Validate images for type/size, show previews.
+
+Batch actions (multi-select delete, CSV import/export), undo delete (snackbar/toast).
+
+Inactive items are clearly indicated.
+
+All modals/forms are fully accessible.
+
+“Preview as guest” feature available.
+
+Inventory/Sold Out:
+
+Toggling sold out/available updates guest view in real time.
+
+Batch sold out/available for a category.
+
+Add visual cues (red/green badge) for sold out status.
+
+(Optional: audit log for inventory changes.)
+
+All controls are keyboard/screen reader accessible.
+
+Order Management:
+
+Orders refresh in real time or short interval.
+
+Can print (reprint) from admin panel only.
+
+Orders can be batch cleared/archived.
+
+Order detail modal shows all info, print, mark complete.
+
+CSV export for order history.
+
+All admin actions are accessible by keyboard/screen reader.
+
+Pricing Config:
+
+No negative/outlier values allowed (validate and warn).
+
+Show real-time preview (“5 toppings will cost $X”) before saving.
+
+Batch apply pricing rules to menus.
+
+All controls fully accessible.
+
+4. Security:
+All admin API endpoints validate JWT/token server-side.
+
+No admin action possible without valid token.
+
+Logout always clears token.
+
+No passwords or sensitive data are exposed to client or logs.
+
+HTTPS enforced in production.
+
+Guests never see or interact with any print or admin function.
+
+5. System/Backup (optional/future):
+Menus/orders can be exported/imported as JSON/CSV.
+
+Database can be backed up/restored from admin panel.
+
+App performs well with high order/menu volume.
+
+All errors are logged gracefully and shown as user-friendly UI messages.
+
+6. QA Checklist:
+Retest every user and admin flow (including all edge cases and error scenarios).
+
+Confirm all bugfixes above are implemented and functional.
+
+All UI and actions are accessible and responsive on all devices.
+
+Orders, inventory, and menu changes propagate instantly between guest and admin.
+
+No console or network errors in browser/dev tools.
+
+Printing is set up for rapid integration; all print logic runs on server/admin only.
+
+All protected endpoints require and validate JWT/token.
+
+Export/import, modals, toasts, dialogs are accessible.
+
+Provide summary of any remaining limitations or technical debt after fixes.
+
+Important Notes:
+No guest printing. Only admin/staff can print orders, via server logic.
+
+All printing, admin, and security logic must be on the server side and never exposed to guests.
+
+When all steps are complete, provide a summary of fixes and remaining limitations.
+Do not skip accessibility or security checks.
+If you encounter any uncertainty, surface it for human review.
+

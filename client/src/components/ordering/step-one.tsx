@@ -55,8 +55,18 @@ export default function StepOne() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex justify-center items-center h-64" role="status" aria-live="polite">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true"></div>
+        <span className="sr-only">Loading base options...</span>
+      </div>
+    );
+  }
+
+  if (baseItems.length === 0) {
+    return (
+      <div className="text-center py-16" role="alert">
+        <h2 className="text-2xl font-bold text-gray-600 mb-4">No Base Options Available</h2>
+        <p className="text-gray-500">Please check back later or contact staff for assistance.</p>
       </div>
     );
   }
@@ -68,11 +78,16 @@ export default function StepOne() {
         <p className="text-gray-600 text-lg">Select your ice cream base flavor</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="group" aria-label="Base flavor options">
         {baseItems.map((item: MenuItem) => (
           <Card
             key={item.id}
-            className={`transition-all duration-200 ${
+            tabIndex={item.isSoldOut ? -1 : 0}
+            role="button"
+            aria-label={`${item.name} base flavor, $${parseFloat(item.price).toFixed(2)}${item.isSoldOut ? ' - sold out' : ''}${order.base?.id === item.id ? ' - selected' : ''}`}
+            aria-pressed={order.base?.id === item.id}
+            aria-disabled={item.isSoldOut}
+            className={`transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
               item.isSoldOut
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer hover:shadow-lg"
@@ -82,17 +97,23 @@ export default function StepOne() {
                 : "border-2 border-transparent hover:border-primary"
             }`}
             onClick={() => handleSelectBase(item)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectBase(item);
+              }
+            }}
           >
             <CardContent className="p-6 text-center">
               {item.imageUrl ? (
                 <img
                   src={item.imageUrl}
-                  alt={item.name}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
+                  alt={`${item.name} ice cream base`}
+                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-md"
                 />
               ) : (
-                <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-primary/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <div className="text-4xl">🍨</div>
+                <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-primary/20 rounded-full mx-auto mb-4 flex items-center justify-center shadow-md">
+                  <div className="text-4xl" aria-hidden="true">🍨</div>
                 </div>
               )}
               
@@ -137,10 +158,12 @@ export default function StepOne() {
         <Button
           onClick={handleContinue}
           disabled={!order.base}
-          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:transform-none"
+          aria-label={!order.base ? "Select a base flavor to continue" : "Continue to sauce selection"}
+          title={!order.base ? "Select a base flavor to continue" : ""}
+          className="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:transform-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           Continue to Sauce
-          <ArrowRight className="ml-2 h-5 w-5" />
+          <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
         </Button>
       </div>
     </div>

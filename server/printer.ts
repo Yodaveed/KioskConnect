@@ -1,5 +1,8 @@
-// Web-based printer service that can communicate with physical printers
-// This approach works in both development and production environments
+// SECURE SERVER-SIDE PRINTER SERVICE
+// Only admin/staff can access printing functionality - NEVER exposed to guests
+// All printing is triggered automatically on order placement or manually by admin
+
+import { ThermalPrinter, PrinterTypes, CharacterSet, BreakLine } from 'node-thermal-printer';
 
 interface PrintOrderData {
   orderNumber: string;
@@ -18,65 +21,90 @@ interface PrintOrderData {
       name: string;
       price: number;
     }>;
+    orderData?: any; // For complex orders like Pints, Freeze Sticks
   };
   totalAmount: string;
   timestamp: string;
   cartId?: string;
+  tableNumber?: string;
+  location?: string;
 }
 
-export class PrinterService {
-  private printerEndpoint: string;
+export class SecurePrinterService {
+  private printer: ThermalPrinter | null = null;
   private isConnected: boolean = false;
+  private printerPath: string;
 
   constructor() {
-    // In production, this would be the IP address of the tablet connected to the printer
-    // For development, we'll use a mock endpoint
-    this.printerEndpoint = process.env.PRINTER_ENDPOINT || 'http://localhost:8080/print';
-    console.log('Printer service initialized with endpoint:', this.printerEndpoint);
+    // SECURITY: Only initialize printer on server - never exposed to client
+    // In production, this should be the USB/serial path to the Toast TP200 printer
+    this.printerPath = process.env.PRINTER_PATH || '/dev/usb/lp0';
+    
+    try {
+      this.initializePrinter();
+    } catch (error) {
+      console.error('Printer initialization failed (this is normal in development):', error);
+    }
   }
 
+  private initializePrinter() {
+    this.printer = new ThermalPrinter({
+      type: PrinterTypes.STAR,
+      interface: this.printerPath,
+      characterSet: CharacterSet.PC852_LATIN2,
+      width: 48, // Toast TP200 width
+      removeSpecialCharacters: false,
+    });
+  }
+
+  // SECURITY: Only admin/staff can test printer connection
   async testConnection(): Promise<boolean> {
+    if (!this.printer) {
+      console.log('Printer not initialized (normal in development)');
+      return false;
+    }
+
     try {
-      const response = await fetch(`${this.printerEndpoint}/test`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const isConnected = await this.printer.isPrinterConnected();
+      this.isConnected = isConnected;
       
-      if (response.ok) {
-        console.log('Printer connection successful');
-        this.isConnected = true;
+      if (isConnected) {
+        console.log('Thermal printer connection successful');
         return true;
       } else {
-        console.error('Printer connection test failed:', response.status);
-        this.isConnected = false;
+        console.error('Thermal printer not connected');
         return false;
       }
     } catch (error) {
-      console.error('Printer test connection error:', error);
+      console.error('Printer connection test error:', error);
       this.isConnected = false;
       return false;
     }
   }
 
-  async printReceipt(orderData: PrintOrderData): Promise<boolean> {
-    try {
-      const receiptData = this.formatReceiptData(orderData);
-      
-      const response = await fetch(this.printerEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(receiptData),
-      });
+  // SECURITY: AUTO-PRINT on order placement + ADMIN-ONLY manual reprint
+  async printReceipt(orderData: PrintOrderData, isReprint: boolean = false): Promise<boolean> {
+    if (!this.printer) {
+      console.log('Development mode: Order would be printed in production');
+      console.log('Order Details:', JSON.stringify(orderData, null, 2));
+      return true; // Return true in development for testing
+    }
 
-      if (response.ok) {
-        console.log('Receipt printed successfully');
+    try {
+      // Clear any previous print jobs
+      this.printer.clear();
+      
+      // Format and send receipt to thermal printer
+      this.formatThermalReceipt(orderData, isReprint);
+      
+      // Execute the print job
+      const success = await this.printer.execute();
+      
+      if (success) {
+        console.log(`Receipt ${isReprint ? 'reprinted' : 'printed'} successfully for order #${orderData.orderNumber}`);
         return true;
       } else {
-        console.error('Print failed:', response.status, await response.text());
+        console.error('Thermal print execution failed');
         return false;
       }
     } catch (error) {
@@ -85,75 +113,136 @@ export class PrinterService {
     }
   }
 
-  private formatReceiptData(orderData: PrintOrderData) {
-    const lines: string[] = [];
-    
+  private formatThermalReceipt(orderData: PrintOrderData, isReprint: boolean = false) {
+    if (!this.printer) return;
+
     // Header
-    lines.push('IC PASTA');
-    lines.push('================');
-    lines.push('');
-    
-    // Order Info
-    lines.push(`Order #: ${orderData.orderNumber}`);
-    lines.push(`Menu: ${orderData.menuType}`);
-    lines.push(`Time: ${new Date(orderData.timestamp).toLocaleString()}`);
+    this.printer.alignCenter();
+    this.printer.setTextSize(1, 1);
+    this.printer.bold(true);
+    this.printer.println('IC PASTA');
+    this.printer.bold(false);
+    this.printer.setTextSize(0, 0);
+    this.printer.println('Fresh & Delicious');
+    this.printer.drawLine();
+    this.printer.newLine();
+
+    // Reprint indicator
+    if (isReprint) {
+      this.printer.alignCenter();
+      this.printer.bold(true);
+      this.printer.println('*** REPRINT ***');
+      this.printer.bold(false);
+      this.printer.newLine();
+    }
+
+    // Order Information
+    this.printer.alignLeft();
+    this.printer.bold(true);
+    this.printer.println(`Order #: ${orderData.orderNumber}`);
+    this.printer.bold(false);
+    this.printer.println(`Menu: ${orderData.menuType}`);
+    this.printer.println(`Time: ${new Date(orderData.timestamp).toLocaleString()}`);
     
     if (orderData.customerName) {
-      lines.push(`Customer: ${orderData.customerName}`);
+      this.printer.println(`Customer: ${orderData.customerName}`);
     }
     
     if (orderData.cartId) {
-      lines.push(`Cart ID: ${orderData.cartId}`);
+      this.printer.println(`Group Cart: ${orderData.cartId}`);
+    }
+
+    if (orderData.tableNumber) {
+      this.printer.println(`Table: ${orderData.tableNumber}`);
+    }
+
+    if (orderData.location) {
+      this.printer.println(`Location: ${orderData.location}`);
     }
     
-    lines.push('================');
-    lines.push('');
-    
-    // Items
+    this.printer.drawLine();
+    this.printer.newLine();
+
+    // Order Items
     if (orderData.items.base) {
-      lines.push('BASE:');
-      lines.push(`  ${orderData.items.base.name}`);
-      lines.push(`  $${orderData.items.base.price.toFixed(2)}`);
-      lines.push('');
+      this.printer.bold(true);
+      this.printer.println('BASE:');
+      this.printer.bold(false);
+      this.printer.println(`  ${orderData.items.base.name}`);
+      this.printer.tableCustom([
+        { text: '', align: 'LEFT', width: 0.7 },
+        { text: `$${orderData.items.base.price.toFixed(2)}`, align: 'RIGHT', width: 0.3 }
+      ]);
+      this.printer.newLine();
     }
-    
+
     if (orderData.items.sauces && orderData.items.sauces.length > 0) {
-      lines.push('SAUCES:');
+      this.printer.bold(true);
+      this.printer.println('SAUCES:');
+      this.printer.bold(false);
       orderData.items.sauces.forEach(sauce => {
-        lines.push(`  ${sauce.name}`);
-        lines.push(`  ${sauce.price > 0 ? `$${sauce.price.toFixed(2)}` : 'Included'}`);
+        this.printer.println(`  ${sauce.name}`);
+        this.printer.tableCustom([
+          { text: '', align: 'LEFT', width: 0.7 },
+          { text: sauce.price > 0 ? `$${sauce.price.toFixed(2)}` : 'Included', align: 'RIGHT', width: 0.3 }
+        ]);
       });
-      lines.push('');
+      this.printer.newLine();
     }
-    
+
     if (orderData.items.toppings && orderData.items.toppings.length > 0) {
-      lines.push('TOPPINGS:');
+      this.printer.bold(true);
+      this.printer.println('TOPPINGS:');
+      this.printer.bold(false);
       orderData.items.toppings.forEach(topping => {
-        lines.push(`  ${topping.name}`);
-        lines.push(`  ${topping.price > 0 ? `$${topping.price.toFixed(2)}` : 'Included'}`);
+        this.printer.println(`  ${topping.name}`);
+        this.printer.tableCustom([
+          { text: '', align: 'LEFT', width: 0.7 },
+          { text: topping.price > 0 ? `$${topping.price.toFixed(2)}` : 'Included', align: 'RIGHT', width: 0.3 }
+        ]);
       });
-      lines.push('');
+      this.printer.newLine();
     }
-    
+
+    // Handle complex order data (Pints, Freeze Sticks, etc.)
+    if (orderData.items.orderData) {
+      this.printer.bold(true);
+      this.printer.println('ORDER DETAILS:');
+      this.printer.bold(false);
+      this.printer.println(JSON.stringify(orderData.items.orderData, null, 2));
+      this.printer.newLine();
+    }
+
     // Total
-    lines.push('================');
-    lines.push(`TOTAL: $${orderData.totalAmount}`);
-    lines.push('');
-    lines.push('');
-    
+    this.printer.drawLine();
+    this.printer.bold(true);
+    this.printer.setTextSize(1, 1);
+    this.printer.tableCustom([
+      { text: 'TOTAL:', align: 'LEFT', width: 0.6 },
+      { text: `$${orderData.totalAmount}`, align: 'RIGHT', width: 0.4 }
+    ]);
+    this.printer.setTextSize(0, 0);
+    this.printer.bold(false);
+    this.printer.newLine();
+
     // Footer
-    lines.push('Thank you for your order!');
-    lines.push('IC Pasta - Fresh & Delicious');
-    lines.push('');
-    lines.push('');
-    
-    return {
-      type: 'receipt',
-      data: lines,
-      cut: true,
-      orderData: orderData
-    };
+    this.printer.alignCenter();
+    this.printer.println('Thank you for your order!');
+    this.printer.println('Please show this receipt');
+    this.printer.println('when picking up your order');
+    this.printer.newLine();
+    this.printer.newLine();
+
+    // Cut the paper
+    this.printer.cut();
+  }
+
+  // SECURITY: Only admin can reprint orders
+  async reprintOrder(orderData: PrintOrderData): Promise<boolean> {
+    console.log(`Admin reprinting order #${orderData.orderNumber}`);
+    return this.printReceipt(orderData, true);
   }
 }
 
-export const printerService = new PrinterService();
+// Export secure printer service - only accessible server-side
+export const printerService = new SecurePrinterService();

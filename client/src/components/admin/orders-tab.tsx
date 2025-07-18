@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Clock, DollarSign, User, Package, Search, Filter, RefreshCw } from "lucide-react";
+import { Clock, DollarSign, User, Package, Search, Filter, RefreshCw, Printer } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Order } from "@shared/schema";
@@ -40,8 +40,37 @@ export default function OrdersTab() {
     },
   });
 
+  // SECURE ADMIN-ONLY REPRINT FUNCTIONALITY
+  const reprintReceiptMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const token = localStorage.getItem('ic_pasta_admin_token');
+      return await apiRequest("POST", `/api/print/reprint/${orderId}`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Receipt Reprinted",
+        description: data.message || "Receipt has been sent to the thermal printer",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Reprint Failed", 
+        description: error.message || "Failed to reprint receipt",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleStatusChange = (orderId: number, newStatus: string) => {
     updateStatusMutation.mutate({ id: orderId, status: newStatus });
+  };
+
+  const handleReprintReceipt = (orderId: number) => {
+    reprintReceiptMutation.mutate(orderId);
   };
 
   const getStatusBadge = (status: string) => {
@@ -300,6 +329,19 @@ export default function OrdersTab() {
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        {/* SECURE REPRINT BUTTON - ADMIN ONLY */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReprintReceipt(order.id)}
+                          disabled={reprintReceiptMutation.isPending}
+                          title="Reprint receipt to thermal printer"
+                          className="h-8 px-3"
+                        >
+                          <Printer className="h-3 w-3 mr-1" />
+                          {reprintReceiptMutation.isPending ? "Printing..." : "Reprint"}
+                        </Button>
+                        
                         <Select
                           value={order.status}
                           onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}

@@ -386,8 +386,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const validatedData = insertOrderSchema.parse(orderData);
     const order = await storage.createOrder(validatedData);
     
-    // Attempt to print receipt
+    // SECURE AUTO-PRINT: Automatically print receipt on order placement
     try {
+      // Extract QR info from request body if available
+      const qrTable = req.body.qrTable;
+      const qrLocation = req.body.qrLocation;
+      
       const printData = {
         orderNumber: order.orderNumber,
         customerName: order.customerName,
@@ -395,16 +399,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: order.items || {},
         totalAmount: order.totalAmount,
         timestamp: order.createdAt || new Date().toISOString(),
-        cartId: req.body.cartId
+        cartId: req.body.cartId,
+        tableNumber: qrTable,
+        location: qrLocation
       };
       
       const printSuccess = await printerService.printReceipt(printData);
       if (!printSuccess) {
-        console.warn(`Print failed for order ${order.orderNumber}`);
+        console.warn(`Auto-print failed for order ${order.orderNumber} - receipt can be reprinted by admin`);
+      } else {
+        console.log(`Receipt auto-printed for order ${order.orderNumber}`);
       }
     } catch (printError) {
-      console.error('Print error:', printError);
-      // Don't fail the order if printing fails
+      console.error('Auto-print error:', printError);
+      // Don't fail the order if printing fails - admin can reprint later
     }
     
     res.status(201).json(successResponse(order, "Order placed successfully"));
@@ -437,43 +445,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(successResponse(stats));
   }));
 
-  // ==================== PRINT SERVICE ROUTES ====================
+  // ==================== SECURE PRINT SERVICE ROUTES ====================
+  // SECURITY: All printing routes require admin authentication
 
-  // GET /api/print/test - Test printer connection
-  app.get("/api/print/test", asyncHandler(async (req, res) => {
-    const isConnected = await printerService.testConnection();
-    res.json(successResponse(
-      { connected: isConnected }, 
-      isConnected ? "Printer connected successfully" : "Printer connection failed"
-    ));
-  }));
+  // GET /api/print/test - Test printer connection (ADMIN ONLY)
+  app.get("/api/print/test", 
+    authenticateAdmin,
+    asyncHandler(async (req, res) => {
+      const isConnected = await printerService.testConnection();
+      res.json(successResponse(
+        { connected: isConnected }, 
+        isConnected ? "Thermal printer connected successfully" : "Thermal printer connection failed"
+      ));
+    })
+  );
 
-  // POST /api/print - Print receipt (for use by other devices)
-  app.post("/api/print", asyncHandler(async (req, res) => {
-    const { orderNumber, customerName, menuType, items, totalAmount, timestamp, cartId } = req.body;
-    
-    if (!orderNumber || !totalAmount || !items) {
-      return res.status(400).json(errorResponse("Missing required print data"));
-    }
-    
-    const printData = {
-      orderNumber,
-      customerName,
-      menuType: menuType || "Ice Cream",
-      items,
-      totalAmount,
-      timestamp: timestamp || new Date().toISOString(),
-      cartId
-    };
-    
-    const printSuccess = await printerService.printReceipt(printData);
-    
-    if (printSuccess) {
-      res.json(successResponse(null, "Receipt printed successfully"));
-    } else {
-      res.status(500).json(errorResponse("Print failed"));
-    }
-  }));
+  // POST /api/print/reprint/:orderId - Reprint receipt for existing order (ADMIN ONLY)
+  app.post("/api/print/reprint/:orderId", 
+    authenticateAdmin,
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const order = await storage.getOrderById(parseInt(req.params.orderId));
+      if (!order) {
+        return res.status(404).json(errorResponse("Order not found"));
+      }
+
+      const printData = {
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        menuType: req.body.menuType || "Ice Cream",
+        items: order.items || {},
+        totalAmount: order.totalAmount,
+        timestamp: order.createdAt || new Date().toISOString(),
+        cartId: order.cartId,
+        tableNumber: order.tableNumber,
+        location: order.location
+      };
+
+      const printSuccess = await printerService.reprintOrder(printData);
+      
+      if (printSuccess) {
+        res.json(successResponse(null, `Receipt reprinted successfully for order #${order.orderNumber}`));
+      } else {
+        res.status(500).json(errorResponse("Reprint failed"));
+      }
+    })
+  );
+
+  // POST /api/print/manual - Manual print with custom data (ADMIN ONLY)
+  app.post("/api/print/manual", 
+    authenticateAdmin,
+    asyncHandler(async (req, res) => {
+      const { orderNumber, customerName, menuType, items, totalAmount, timestamp, cartId, tableNumber, location } = req.body;
+      
+      if (!orderNumber || !totalAmount || !items) {
+        return res.status(400).json(errorResponse("Missing required print data"));
+      }
+      
+      const printData = {
+        orderNumber,
+        customerName,
+        menuType: menuType || "IC Pasta",
+        items,
+        totalAmount,
+        timestamp: timestamp || new Date().toISOString(),
+        cartId,
+        tableNumber,
+        location
+      };
+      
+      const printSuccess = await printerService.printReceipt(printData);
+      
+      if (printSuccess) {
+        res.json(successResponse(null, "Receipt printed successfully"));
+      } else {
+        res.status(500).json(errorResponse("Print failed"));
+      }
+    })
+  );
 
   // ==================== QR CODE ROUTES ====================
 
