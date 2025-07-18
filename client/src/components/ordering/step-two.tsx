@@ -144,9 +144,14 @@ export default function StepTwo() {
                       <p className="text-sm font-medium text-primary">
                         {price > 0 ? `+$${price.toFixed(2)}` : "Included"}
                       </p>
-                      {getSelectedSauceCount() >= 2 && (
+                      {getSelectedSauceCount() >= 2 && !isSelected && (
                         <Badge variant="outline" className="text-xs">
                           +$0.25 after 2nd
+                        </Badge>
+                      )}
+                      {getSelectedSauceCount() >= 2 && isSelected && getSelectedSauceCount() > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +$0.25 each
                         </Badge>
                       )}
                     </div>

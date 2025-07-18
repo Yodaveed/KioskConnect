@@ -433,6 +433,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  // ==================== AUTHENTICATION ROUTES ====================
+  // Note: Authentication routes are handled in setupSecureAuth() in auth.ts
+
   // ==================== ANALYTICS ROUTES ====================
 
   // GET /api/analytics/stats - Get order statistics

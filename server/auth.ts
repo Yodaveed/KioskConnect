@@ -87,8 +87,69 @@ export function authenticateAdmin(req: AuthenticatedRequest, res: Response, next
 }
 
 export async function setupSecureAuth(app: Express) {
-  // Apply rate limiting to login endpoint
-  app.use('/api/auth/login', loginRateLimit);
+  // Default admin credentials for testing
+  const defaultAdmin = {
+    id: 1,
+    username: "admin",
+    password: "admin123",
+    isAdmin: true
+  };
+  
+  // POST /api/auth/login - Admin login
+  app.post("/api/auth/login", 
+    loginRateLimit,
+    async (req, res) => {
+      try {
+        console.log("Login request received:", req.body);
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+          return res.status(400).json({ error: "Username and password are required" });
+        }
+
+        console.log("Comparing credentials:", { provided: { username, password }, expected: { username: defaultAdmin.username, password: defaultAdmin.password } });
+
+        if (username === defaultAdmin.username && password === defaultAdmin.password) {
+          const token = generateToken({
+            id: defaultAdmin.id,
+            username: defaultAdmin.username,
+            isAdmin: defaultAdmin.isAdmin
+          });
+
+          console.log("Login successful, token generated");
+          res.json({
+            success: true,
+            data: {
+              user: {
+                id: defaultAdmin.id,
+                username: defaultAdmin.username,
+                isAdmin: defaultAdmin.isAdmin
+              },
+              token
+            },
+            message: "Login successful"
+          });
+        } else {
+          console.log("Invalid credentials provided");
+          res.status(401).json({ error: "Invalid credentials" });
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    }
+  );
+
+  // POST /api/auth/logout - Admin logout
+  app.post("/api/auth/logout", async (req, res) => {
+    res.json({ success: true, message: "Logout successful" });
+  });
+
+  // GET /api/auth/verify - Verify admin token
+  app.get("/api/auth/verify", authenticateAdmin, async (req, res) => {
+    const user = (req as any).user;
+    res.json({ success: true, data: { user }, message: "Token is valid" });
+  });
   
   // Helmet-like security headers
   app.use((req, res, next) => {
