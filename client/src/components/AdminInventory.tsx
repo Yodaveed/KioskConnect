@@ -235,8 +235,8 @@ export default function AdminInventory() {
     );
   }
   
-  const inventory = inventoryData?.data?.inventory || [];
-  const lowStock = inventoryData?.data?.lowStock || [];
+  const inventory = inventoryData?.inventory || [];
+  const lowStock = inventoryData?.lowStock || [];
   const adjustmentLog = logData?.data || [];
   
   return (
