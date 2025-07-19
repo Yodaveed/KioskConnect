@@ -9,7 +9,10 @@ import {
   loginSchema,
   idParamSchema,
   menuQuerySchema,
-  categoryQuerySchema
+  categoryQuerySchema,
+  enhancedInsertInventoryItemSchema,
+  enhancedInventoryAdjustmentSchema,
+  manualTicketSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
@@ -708,6 +711,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/logout", asyncHandler(async (req, res) => {
     res.json(successResponse(null, "Logged out successfully"));
   }));
+
+  // ==================== INVENTORY MANAGEMENT ROUTES ====================
+  // SECURITY: All inventory routes require admin authentication
+
+  // GET /api/inventory - Get all inventory with low-stock alerts
+  app.get("/api/inventory", 
+    authenticateAdmin,
+    asyncHandler(async (req, res) => {
+      const inventory = await storage.getInventory();
+      const lowStock = await storage.getInventoryLowStock();
+      res.json(successResponse({ inventory, lowStock }));
+    })
+  );
+
+  // POST /api/inventory - Create new inventory item
+  app.post("/api/inventory", 
+    authenticateAdmin,
+    validateBody(enhancedInsertInventoryItemSchema),
+    asyncHandler(async (req, res) => {
+      const item = await storage.createInventoryItem(req.body);
+      
+      // Audit log for inventory creation
+      console.log(`Inventory item created: ${item.name} (${item.quantity} ${item.unit}) by admin at ${new Date().toISOString()}`);
+      
+      res.json(successResponse(item, "Inventory item created"));
+    })
+  );
+
+  // PUT /api/inventory/:id - Update inventory item
+  app.put("/api/inventory/:id", 
+    authenticateAdmin,
+    validateIdParam,
+    validatePartialBody(enhancedInsertInventoryItemSchema),
+    asyncHandler(async (req, res) => {
+      const updated = await storage.updateInventoryItem(parseInt(req.params.id), req.body);
+      
+      // Audit log for inventory updates
+      console.log(`Inventory item updated: ID ${req.params.id} by admin at ${new Date().toISOString()}`);
+      
+      res.json(successResponse(updated, "Inventory item updated"));
+    })
+  );
+
+  // DELETE /api/inventory/:id - Archive inventory item (soft delete)
+  app.delete("/api/inventory/:id", 
+    authenticateAdmin,
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      await storage.archiveInventoryItem(parseInt(req.params.id));
+      
+      // Audit log for inventory archival
+      console.log(`Inventory item archived: ID ${req.params.id} by admin at ${new Date().toISOString()}`);
+      
+      res.json(successResponse(null, "Inventory item archived"));
+    })
+  );
+
+  // POST /api/inventory/:id/adjust - Adjust inventory quantity (add/remove for delivery, waste, etc.)
+  app.post("/api/inventory/:id/adjust", 
+    authenticateAdmin,
+    validateIdParam,
+    validateBody(enhancedInventoryAdjustmentSchema.omit({ inventoryItemId: true, userId: true })),
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json(errorResponse("User not authenticated"));
+      }
+      
+      const updated = await storage.adjustInventoryItem({
+        inventoryItemId: parseInt(req.params.id),
+        adjustment: req.body.adjustment,
+        reason: req.body.reason,
+        note: req.body.note || "",
+        userId
+      });
+      
+      // Audit log for inventory adjustments
+      console.log(`Inventory adjusted: ID ${req.params.id}, change: ${req.body.adjustment}, reason: ${req.body.reason} by user ${userId} at ${new Date().toISOString()}`);
+      
+      res.json(successResponse(updated, "Inventory adjusted"));
+    })
+  );
+
+  // GET /api/inventory-log - Get all inventory adjustments
+  app.get("/api/inventory-log", 
+    authenticateAdmin,
+    asyncHandler(async (req, res) => {
+      const log = await storage.getInventoryAdjustments();
+      res.json(successResponse(log));
+    })
+  );
+
+  // GET /api/inventory-log/:itemId - Get adjustments for specific item
+  app.get("/api/inventory-log/:itemId", 
+    authenticateAdmin,
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const log = await storage.getInventoryAdjustmentsByItem(parseInt(req.params.itemId));
+      res.json(successResponse(log));
+    })
+  );
+
+  // POST /api/manual-ticket - Create manual ticket entry and update inventory
+  app.post("/api/manual-ticket", 
+    authenticateAdmin,
+    validateBody(manualTicketSchema),
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json(errorResponse("User not authenticated"));
+      }
+      
+      // 1. Create an order flagged as manual
+      const orderData = {
+        orderNumber: storage.generateOrderNumber(),
+        customerName: req.body.customerName || "Manual Entry",
+        status: "completed" as const,
+        totalAmount: req.body.totalAmount.toString(),
+        items: req.body.items,
+        manualEntry: true,
+      };
+      
+      const validatedOrderData = enhancedInsertOrderSchema.parse(orderData);
+      const order = await storage.createOrder(validatedOrderData);
+      
+      // 2. Deduct inventory/log for each item
+      for (const item of req.body.items) {
+        await storage.adjustInventoryItem({
+          inventoryItemId: item.inventoryItemId,
+          adjustment: -item.quantity,
+          reason: "manual ticket",
+          note: req.body.note || `Manual ticket #${order.orderNumber}`,
+          userId
+        });
+      }
+      
+      // Audit log for manual ticket entries
+      console.log(`Manual ticket created: ${order.orderNumber}, total: $${order.totalAmount}, items: ${req.body.items.length} by user ${userId} at ${new Date().toISOString()}`);
+      
+      res.json(successResponse(order, "Manual ticket entered, inventory updated"));
+    })
+  );
 
   // ==================== QR CODE ROUTES ====================
 

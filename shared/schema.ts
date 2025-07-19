@@ -54,6 +54,7 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"), // 'pending', 'preparing', 'completed'
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   items: jsonb("items").notNull(), // Store order items as JSON
+  manualEntry: boolean("manual_entry").default(false), // Flag for staff-entered orders
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -74,6 +75,28 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull().default(1),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   modifiers: jsonb("modifiers"), // Store modifiers like dairy-free
+});
+
+// Inventory management tables
+export const inventoryItems = pgTable("inventory_items", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  quantity: integer("quantity").notNull().default(0),
+  unit: text("unit").notNull(), // e.g. "oz", "each", "box"
+  parLevel: integer("par_level").notNull().default(0), // restock threshold
+  archived: boolean("archived").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const inventoryAdjustments = pgTable("inventory_adjustments", {
+  id: serial("id").primaryKey(),
+  inventoryItemId: integer("inventory_item_id").references(() => inventoryItems.id).notNull(),
+  adjustment: integer("adjustment").notNull(), // positive (add), negative (remove)
+  reason: text("reason").notNull(), // e.g., "manual sale", "waste", "delivery", "comp"
+  note: text("note").default(""),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Relations
@@ -109,6 +132,22 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   menuItem: one(menuItems, {
     fields: [orderItems.menuItemId],
     references: [menuItems.id],
+  }),
+}));
+
+// Inventory relations
+export const inventoryItemsRelations = relations(inventoryItems, ({ many }) => ({
+  adjustments: many(inventoryAdjustments),
+}));
+
+export const inventoryAdjustmentsRelations = relations(inventoryAdjustments, ({ one }) => ({
+  inventoryItem: one(inventoryItems, {
+    fields: [inventoryAdjustments.inventoryItemId],
+    references: [inventoryItems.id],
+  }),
+  user: one(users, {
+    fields: [inventoryAdjustments.userId],
+    references: [users.id],
   }),
 }));
 
@@ -171,6 +210,22 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
   modifiers: true,
 });
 
+// Inventory schemas
+export const insertInventoryItemSchema = createInsertSchema(inventoryItems).pick({
+  name: true,
+  quantity: true,
+  unit: true,
+  parLevel: true,
+});
+
+export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjustments).pick({
+  inventoryItemId: true,
+  adjustment: true,
+  reason: true,
+  note: true,
+  userId: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -186,6 +241,12 @@ export type Cart = typeof carts.$inferSelect;
 export type InsertCart = z.infer<typeof insertCartSchema>;
 export type MenuItemToMenu = typeof menuItemsToMenus.$inferSelect;
 export type InsertMenuItemToMenu = z.infer<typeof insertMenuItemToMenuSchema>;
+
+// Inventory types
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InsertInventoryItem = z.infer<typeof insertInventoryItemSchema>;
+export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
+export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
 
 // Enhanced validation schemas with comprehensive security validation
 export const enhancedInsertMenuSchema = insertMenuSchema.extend({
@@ -223,6 +284,23 @@ export const enhancedInsertOrderSchema = insertOrderSchema.extend({
   })).min(1, "At least one item required"),
   totalAmount: z.string().regex(/^\d+\.\d{2}$/, "Total must be in format X.XX"),
   status: z.enum(["pending", "preparing", "completed", "cancelled"]).default("pending"),
+  manualEntry: z.boolean().optional(),
+});
+
+// Enhanced inventory validation schemas
+export const enhancedInsertInventoryItemSchema = insertInventoryItemSchema.extend({
+  name: z.string().min(1, "Item name is required").max(100, "Item name too long"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  unit: z.string().min(1, "Unit is required").max(20, "Unit too long"),
+  parLevel: z.number().int().min(0, "Par level cannot be negative"),
+});
+
+export const enhancedInventoryAdjustmentSchema = insertInventoryAdjustmentSchema.extend({
+  inventoryItemId: z.number().int().positive("Invalid inventory item ID"),
+  adjustment: z.number().int().refine(val => val !== 0, "Adjustment cannot be zero"),
+  reason: z.string().min(1, "Reason is required").max(100, "Reason too long"),
+  note: z.string().max(500, "Note too long").optional(),
+  userId: z.number().int().positive("Invalid user ID"),
 });
 
 export const enhancedInsertCartSchema = insertCartSchema.extend({
@@ -254,4 +332,15 @@ export const menuQuerySchema = z.object({
 export const categoryQuerySchema = z.object({
   menuId: z.string().regex(/^\d+$/, "Invalid menu ID").transform(Number).optional(),
   category: z.enum(["base", "sauce", "topping", "addon", "flavor", "size"]).optional(),
+});
+
+// Manual ticket entry validation
+export const manualTicketSchema = z.object({
+  items: z.array(z.object({
+    inventoryItemId: z.number().int().positive("Invalid inventory item ID"),
+    quantity: z.number().int().min(1, "Quantity must be at least 1").max(100, "Quantity too large")
+  })).min(1, "At least one item required"),
+  totalAmount: z.number().min(0, "Total amount cannot be negative"),
+  customerName: z.string().max(100, "Customer name too long").optional(),
+  note: z.string().max(500, "Note too long").optional(),
 });

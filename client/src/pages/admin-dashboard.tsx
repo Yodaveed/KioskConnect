@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Eye, LogOut, BarChart3, Utensils, Receipt, QrCode, Menu as MenuIcon, PackageX, DollarSign } from "lucide-react";
+import { Settings, Eye, LogOut, BarChart3, Utensils, Receipt, QrCode, Menu as MenuIcon, PackageX, DollarSign, Package, FileText } from "lucide-react";
 import { authService } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,8 +11,10 @@ import OrdersTab from "@/components/admin/orders-tab";
 import QrTab from "@/components/admin/qr-tab";
 import SoldOutManager from "@/components/admin/sold-out-manager";
 import PricingConfig from "@/components/admin/pricing-config";
+import AdminInventory from "@/components/AdminInventory";
+import ManualTicketEntry from "@/components/ManualTicketEntry";
 
-type TabType = "dashboard" | "menu-types" | "menu" | "orders" | "qr" | "sold-out" | "pricing";
+type TabType = "dashboard" | "menu-types" | "menu" | "orders" | "qr" | "sold-out" | "pricing" | "inventory" | "manual-ticket";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
@@ -31,6 +33,8 @@ export default function AdminDashboard() {
     { id: "menu-types", label: "Menu Types", icon: MenuIcon },
     { id: "menu", label: "Menu Items", icon: Utensils },
     { id: "orders", label: "Orders", icon: Receipt },
+    { id: "inventory", label: "Inventory", icon: Package },
+    { id: "manual-ticket", label: "Manual Ticket", icon: FileText },
     { id: "qr", label: "QR Codes", icon: QrCode },
     { id: "sold-out", label: "Sold Out", icon: PackageX },
     { id: "pricing", label: "Pricing", icon: DollarSign },
@@ -46,6 +50,10 @@ export default function AdminDashboard() {
         return <MenuTab />;
       case "orders":
         return <OrdersTab />;
+      case "inventory":
+        return <AdminInventory />;
+      case "manual-ticket":
+        return <ManualTicketEntry />;
       case "qr":
         return <QrTab />;
       case "sold-out":

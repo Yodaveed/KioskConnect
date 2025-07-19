@@ -1,4 +1,4 @@
-import { users, menus, menuItems, menuItemsToMenus, orders, orderItems, carts, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type MenuItemToMenu, type InsertMenuItemToMenu, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Cart, type InsertCart } from "@shared/schema";
+import { users, menus, menuItems, menuItemsToMenus, orders, orderItems, carts, inventoryItems, inventoryAdjustments, type User, type InsertUser, type Menu, type InsertMenu, type MenuItem, type InsertMenuItem, type MenuItemToMenu, type InsertMenuItemToMenu, type Order, type InsertOrder, type OrderItem, type InsertOrderItem, type Cart, type InsertCart, type InventoryItem, type InsertInventoryItem, type InventoryAdjustment, type InsertInventoryAdjustment } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
 
@@ -53,6 +53,18 @@ export interface IStorage {
   
   // Sold-out methods
   markItemSoldOut(itemId: number, soldOut: boolean): Promise<MenuItem>;
+  
+  // Inventory methods
+  getInventory(): Promise<InventoryItem[]>;
+  getInventoryLowStock(): Promise<InventoryItem[]>;
+  createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
+  updateInventoryItem(id: number, item: Partial<InsertInventoryItem>): Promise<InventoryItem>;
+  archiveInventoryItem(id: number): Promise<void>;
+  adjustInventoryItem(adjustment: InsertInventoryAdjustment): Promise<InventoryItem>;
+  
+  // Inventory adjustment log methods
+  getInventoryAdjustments(): Promise<InventoryAdjustment[]>;
+  getInventoryAdjustmentsByItem(itemId: number): Promise<InventoryAdjustment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -366,6 +378,68 @@ export class DatabaseStorage implements IStorage {
     }
     
     return result;
+  }
+
+  // Inventory management methods
+  async getInventory(): Promise<InventoryItem[]> {
+    return await db.select().from(inventoryItems).where(eq(inventoryItems.archived, false));
+  }
+
+  async getInventoryLowStock(): Promise<InventoryItem[]> {
+    return await db.select().from(inventoryItems)
+      .where(and(eq(inventoryItems.archived, false), lte(inventoryItems.quantity, inventoryItems.parLevel)));
+  }
+
+  async createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem> {
+    const [created] = await db.insert(inventoryItems).values({
+      ...item,
+      archived: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return created;
+  }
+
+  async updateInventoryItem(id: number, item: Partial<InsertInventoryItem>): Promise<InventoryItem> {
+    const [updated] = await db.update(inventoryItems)
+      .set({ ...item, updatedAt: new Date() })
+      .where(eq(inventoryItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async archiveInventoryItem(id: number): Promise<void> {
+    await db.update(inventoryItems)
+      .set({ archived: true, updatedAt: new Date() })
+      .where(eq(inventoryItems.id, id));
+  }
+
+  async adjustInventoryItem(adjustmentData: InsertInventoryAdjustment): Promise<InventoryItem> {
+    // Insert log entry
+    await db.insert(inventoryAdjustments).values({
+      ...adjustmentData,
+      createdAt: new Date()
+    });
+    
+    // Update stock
+    const [updated] = await db.update(inventoryItems)
+      .set({
+        quantity: sql`${inventoryItems.quantity} + ${adjustmentData.adjustment}`,
+        updatedAt: new Date()
+      })
+      .where(eq(inventoryItems.id, adjustmentData.inventoryItemId))
+      .returning();
+    return updated;
+  }
+
+  async getInventoryAdjustments(): Promise<InventoryAdjustment[]> {
+    return await db.select().from(inventoryAdjustments).orderBy(desc(inventoryAdjustments.createdAt));
+  }
+
+  async getInventoryAdjustmentsByItem(itemId: number): Promise<InventoryAdjustment[]> {
+    return await db.select().from(inventoryAdjustments)
+      .where(eq(inventoryAdjustments.inventoryItemId, itemId))
+      .orderBy(desc(inventoryAdjustments.createdAt));
   }
 }
 
