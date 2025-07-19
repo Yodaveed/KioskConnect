@@ -22,22 +22,18 @@ export class AuthService {
       password
     });
 
-    // Handle direct response format { user, token }
-    this.token = response.token;
+    // Authentication now uses HTTP-only cookies, store flag for UI state
+    this.token = 'authenticated';
     this.user = response.user;
     
-    localStorage.setItem(TOKEN_KEY, this.token);
+    localStorage.setItem(TOKEN_KEY, 'authenticated');
     
-    return response;
+    return { user: response.user, token: 'authenticated' };
   }
 
   async logout(): Promise<void> {
     try {
-      if (this.token) {
-        await apiRequest('POST', '/api/auth/logout', {}, {
-          'Authorization': `Bearer ${this.token}`
-        });
-      }
+      await apiRequest('POST', '/api/auth/logout', {});
     } catch (error) {
       console.warn('Logout request failed:', error);
     } finally {
@@ -53,9 +49,7 @@ export class AuthService {
     }
 
     try {
-      const response = await apiRequest('GET', '/api/auth/verify', undefined, {
-        'Authorization': `Bearer ${this.token}`
-      });
+      const response = await apiRequest('GET', '/api/auth/verify', undefined);
       
       this.user = response.user;
       return this.user;

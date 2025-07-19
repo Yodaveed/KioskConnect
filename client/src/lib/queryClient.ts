@@ -33,11 +33,8 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
-  // Add authorization header if token exists
-  const token = localStorage.getItem('ic_pasta_admin_token');
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  // Admin authentication uses cookies, not Bearer tokens
+  // Token is stored in localStorage but sent via cookies automatically
   
   // Add any extra headers
   if (extraHeaders) {
@@ -73,11 +70,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const headers: Record<string, string> = {};
     
-    // Add authorization header if token exists
-    const token = localStorage.getItem('ic_pasta_admin_token');
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
+    // Admin authentication uses cookies, not Bearer tokens
     
     const res = await fetch(queryKey[0] as string, {
       headers,
