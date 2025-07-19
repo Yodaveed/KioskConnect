@@ -24,14 +24,13 @@ import {
   errorResponse,
   globalErrorHandler,
   generalApiLimit,
-  uploadRateLimit,
   orderRateLimit
 } from "./middleware";
-import { upload, deleteUploadedFile, getFileUrl } from "./upload";
+// Removed file upload functionality - now using external URLs
 import { printerService } from "./printer";
 import { qrCodeService } from "./qr-generator";
 import { setupSecureAuth, authenticateAdmin, generateToken, verifyPassword, hashPassword, type AuthenticatedRequest } from "./auth";
-import path from 'path';
+// Removed path import - no longer needed without file uploads
 import express from 'express';
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -43,15 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // ==================== STATIC FILE SERVING ====================
   
-  // Serve uploaded files with security headers
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
-    maxAge: '1d', // Cache images for 1 day
-    setHeaders: (res, path) => {
-      // Security headers for static files
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day cache
-    }
-  }));
+  // Removed static file serving for uploads - now using external URLs
 
   // ==================== MENU TYPE ROUTES ====================
   
@@ -64,16 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/menus - Create new menu with enhanced validation
   app.post("/api/menus", 
     authenticateAdmin,
-    uploadRateLimit, // Rate limit file uploads
-    upload.single('image'),
     validateBody(enhancedInsertMenuSchema),
     asyncHandler(async (req, res) => {
-      let menuData = req.body;
-      
-      // Handle uploaded image with validation
-      if (req.file) {
-        menuData.imageUrl = getFileUrl(req.file.filename);
-      }
+      const menuData = req.body;
       
       const menu = await storage.createMenu(menuData);
       res.status(201).json(successResponse(menu, "Menu created successfully"));
@@ -84,15 +68,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/menus/:id", 
     authenticateAdmin,
     validateIdParam,
-    upload.single('image'),
+    validatePartialBody(enhancedInsertMenuSchema),
     asyncHandler(async (req, res) => {
-      let menuData = req.body;
-      
-      // Handle uploaded image
-      if (req.file) {
-        menuData.imageUrl = getFileUrl(req.file.filename);
-      }
-      
+      const menuData = req.body;
       const menu = await storage.updateMenu(parseInt(req.params.id), menuData);
       res.json(successResponse(menu, "Menu updated successfully"));
     })
@@ -103,13 +81,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
-      // Get menu to delete associated image file
-      const menu = await storage.getMenuById(parseInt(req.params.id));
-      if (menu && menu.imageUrl && menu.imageUrl.startsWith('/uploads/')) {
-        const filename = path.basename(menu.imageUrl);
-        await deleteUploadedFile(filename);
-      }
-      
       await storage.deleteMenu(parseInt(req.params.id));
       res.json(successResponse(null, "Menu deleted successfully"));
     })
@@ -138,15 +109,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/menu - Create new menu item with enhanced validation
   app.post("/api/menu", 
     authenticateAdmin,
-    uploadRateLimit, // Rate limit file uploads
-    upload.single('image'),
+    validateBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
       let menuItemData = req.body;
-      
-      // Handle uploaded image
-      if (req.file) {
-        menuItemData.imageUrl = getFileUrl(req.file.filename);
-      }
       
       // Extract menu IDs (for multi-menu assignment)
       let menuIds = [];
@@ -201,21 +166,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/menu/:id", 
     authenticateAdmin,
     validateIdParam,
-    upload.single('image'),
+    validatePartialBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
       let updateData = req.body;
-      
-      // Handle uploaded image
-      if (req.file) {
-        // Delete old image if it exists
-        const existingItem = await storage.getMenuItemById(parseInt(req.params.id));
-        if (existingItem && existingItem.imageUrl && existingItem.imageUrl.startsWith('/uploads/')) {
-          const oldFilename = path.basename(existingItem.imageUrl);
-          await deleteUploadedFile(oldFilename);
-        }
-        
-        updateData.imageUrl = getFileUrl(req.file.filename);
-      }
       
       // Extract menu IDs for assignment
       let menuIds = [];
@@ -333,7 +286,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menu-items - Create new menu item with enhanced validation
   app.post("/api/menu-items", 
-    uploadRateLimit, // Rate limit file uploads
     validateBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
       const menuItem = await storage.createMenuItem(req.body, []); // Empty array for backward compatibility
@@ -348,7 +300,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PUT /api/menu-items/:id - Update menu item with enhanced validation
   app.put("/api/menu-items/:id", 
     validateIdParam,
-    uploadRateLimit, // Rate limit updates with potential file uploads
     validatePartialBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
       const menuItem = await storage.updateMenuItem(parseInt(req.params.id), req.body);
@@ -364,55 +315,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/menu-items/:id", 
     validateIdParam,
     asyncHandler(async (req, res) => {
-      // Get menu item to delete associated image file
-      const menuItem = await storage.getMenuItemById(parseInt(req.params.id));
-      if (menuItem && menuItem.imageUrl && menuItem.imageUrl.startsWith('/uploads/')) {
-        const filename = path.basename(menuItem.imageUrl);
-        await deleteUploadedFile(filename);
-      }
-      
       await storage.deleteMenuItem(parseInt(req.params.id));
       res.json(successResponse(null, "Menu item deleted successfully"));
     })
   );
 
-  // ==================== FILE UPLOAD ROUTES ====================
-
-  // POST /api/upload/menu-item-image - Upload menu item image
-  app.post("/api/upload/menu-item-image", 
-    authenticateAdmin,
-    (req, res, next) => {
-      upload.single('image')(req, res, (err) => {
-        if (err) {
-          return res.status(400).json(errorResponse(err.message));
-        }
-        next();
-      });
-    },
-    asyncHandler(async (req, res) => {
-      if (!req.file) {
-        return res.status(400).json(errorResponse("No image file provided"));
-      }
-      
-      const imageUrl = getFileUrl(req.file.filename);
-      res.json(successResponse({ 
-        filename: req.file.filename,
-        url: imageUrl,
-        size: req.file.size,
-        mimetype: req.file.mimetype
-      }, "Image uploaded successfully"));
-    })
-  );
-
-  // DELETE /api/upload/:filename - Delete uploaded image
-  app.delete("/api/upload/:filename", 
-    authenticateAdmin,
-    asyncHandler(async (req, res) => {
-      const { filename } = req.params;
-      await deleteUploadedFile(filename);
-      res.json(successResponse(null, "Image deleted successfully"));
-    })
-  );
+  // ==================== FILE UPLOAD ROUTES (REMOVED) ====================
+  // File upload functionality removed - now using external image URLs
 
   // ==================== ORDER ROUTES ====================
 

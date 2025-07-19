@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Menu } from "@shared/schema";
-import ImageUpload from "@/components/ui/image-upload-fixed";
+// Removed ImageUpload - now using simple URL input
 
 const menuSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -54,31 +54,10 @@ export default function MenuTypesTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MenuForm) => {
-      const formData = new FormData();
-      
-      // Append all form fields
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
-        }
-      });
-      
-      const token = localStorage.getItem('ic_pasta_admin_token');
-      
-      const response = await fetch("/api/menus", {
+      return apiRequest("/api/menus", {
         method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
+        body: data
       });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create menu");
-      }
-      
-      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menus"] });
@@ -100,31 +79,10 @@ export default function MenuTypesTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuForm }) => {
-      const formData = new FormData();
-      
-      // Append all form fields
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
-        }
-      });
-      
-      const token = localStorage.getItem('ic_pasta_admin_token');
-      
-      const response = await fetch(`/api/menus/${id}`, {
+      return apiRequest(`/api/menus/${id}`, {
         method: "PUT",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
+        body: data
       });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update menu");
-      }
-      
-      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menus"] });
@@ -251,10 +209,11 @@ export default function MenuTypesTab() {
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Image URL</FormLabel>
                       <FormControl>
-                        <ImageUpload
-                          value={field.value}
-                          onChange={field.onChange}
+                        <Input
+                          placeholder="https://example.com/image.jpg"
+                          {...field}
                           disabled={createMutation.isPending || updateMutation.isPending}
                         />
                       </FormControl>

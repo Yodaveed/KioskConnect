@@ -84,6 +84,7 @@ export const inventoryItems = pgTable("inventory_items", {
   quantity: integer("quantity").notNull().default(0),
   unit: text("unit").notNull(), // e.g. "oz", "each", "box"
   parLevel: integer("par_level").notNull().default(0), // restock threshold
+  imageUrl: text("image_url"), // External URL for inventory item images
   archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -161,6 +162,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertMenuSchema = createInsertSchema(menus).pick({
   name: true,
   description: true,
+  imageUrl: true,
   isActive: true,
   sortOrder: true,
   orderingFlow: true,
@@ -216,6 +218,7 @@ export const insertInventoryItemSchema = createInsertSchema(inventoryItems).pick
   quantity: true,
   unit: true,
   parLevel: true,
+  imageUrl: true,
 });
 
 export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjustments).pick({
@@ -252,6 +255,15 @@ export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustment
 export const enhancedInsertMenuSchema = insertMenuSchema.extend({
   name: z.string().min(1, "Menu name is required").max(100, "Menu name too long"),
   description: z.string().optional(),
+  imageUrl: z.string().optional().refine((val) => {
+    if (!val) return true;
+    try {
+      const url = new URL(val);
+      return ['http:', 'https:'].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  }, "Invalid image URL format"),
   orderingFlow: z.enum(["three-step", "single-page", "custom"], {
     required_error: "Ordering flow is required"
   }),
@@ -265,7 +277,16 @@ export const enhancedInsertMenuItemSchema = insertMenuItemSchema.extend({
   category: z.enum(["base", "sauce", "topping", "addon", "flavor", "size"], {
     required_error: "Category is required"
   }),
-  price: z.string().regex(/^\d+\.\d{2}$/, "Price must be in format X.XX"),
+  price: z.number().min(0, "Price must be positive"),
+  imageUrl: z.string().optional().refine((val) => {
+    if (!val) return true;
+    try {
+      const url = new URL(val);
+      return ['http:', 'https:'].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  }, "Invalid image URL format"),
   isActive: z.boolean().default(true),
   isPremium: z.boolean().default(false),
   isSoldOut: z.boolean().default(false),
@@ -293,6 +314,15 @@ export const enhancedInsertInventoryItemSchema = insertInventoryItemSchema.exten
   quantity: z.number().int().min(0, "Quantity cannot be negative"),
   unit: z.string().min(1, "Unit is required").max(20, "Unit too long"),
   parLevel: z.number().int().min(0, "Par level cannot be negative"),
+  imageUrl: z.string().optional().refine((val) => {
+    if (!val) return true;
+    try {
+      const url = new URL(val);
+      return ['http:', 'https:'].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  }, "Invalid image URL format"),
 });
 
 export const enhancedInventoryAdjustmentSchema = insertInventoryAdjustmentSchema.extend({

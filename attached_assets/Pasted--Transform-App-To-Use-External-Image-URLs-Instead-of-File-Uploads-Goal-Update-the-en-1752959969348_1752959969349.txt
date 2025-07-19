@@ -1,0 +1,38 @@
+# === Transform App To Use External Image URLs Instead of File Uploads ===
+
+Goal:  
+Update the entire IC Pasta Kiosk app so all images (menu, inventory, etc.) use externally-hosted URLs (e.g., from our main website) instead of uploading files to the server.
+
+Instructions:
+
+1. **Remove file upload logic and `/uploads` directory use** from the backend (Express server and related code).
+   - Eliminate or disable any backend code that saves images to the local filesystem or serves them from `/uploads`.
+   - Remove image upload fields from APIs/routes if present.
+
+2. **Database/Schema Update:**  
+   - Add a new field `imageUrl: string` (if not present) to all models where images are used (menu items, inventory, etc.).
+   - Migrate any existing items to store their correct external image URL (from our website), or leave blank if not available.
+
+3. **Admin UI (Frontend) Update:**  
+   - In every add/edit form for menu items, inventory, etc., **replace any file upload field with a text input labeled "Image URL."**
+     - Example placeholder: "Paste image URL from website here"
+   - On submit, store the provided URL in the `imageUrl` field in the database.
+
+4. **App Display Logic:**  
+   - When rendering images anywhere in the app (customer or admin views), use the value of `imageUrl` as the `<img src="...">`.
+   - If `imageUrl` is missing or invalid, show a default image or "No Image" placeholder.
+
+5. **Cleanup:**  
+   - Remove or comment out any unused local image upload/download code or UI.
+   - Ensure the app no longer references or depends on the `/uploads` folder.
+
+6. **(Optional for legacy data):**  
+   - For any menu/inventory items with old local image paths, update them to use the equivalent URL from our main website.
+
+**End Result:**  
+All images in the app are loaded from external URLs (such as `https://icpasta.com/images/icecream.jpg`), there is no need for file uploads or storage on the server, and all image-related logic is simplified and reliable.
+
+After making these changes, rebuild and redeploy the app.  
+Test by adding/editing a menu or inventory item using a URL from our main website and confirm the image loads correctly in both the admin and customer UI.
+
+# (If you need example code for any step, ask me.)

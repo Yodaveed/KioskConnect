@@ -17,7 +17,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MenuItem, Menu } from "@shared/schema";
-import ImageUpload from "@/components/ui/image-upload-fixed";
+// Removed ImageUpload - now using simple URL input
 
 const menuItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -73,34 +73,13 @@ export default function MenuTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MenuItemForm) => {
-      const formData = new FormData();
-      
-      // Append all form fields
-      Object.entries(data).forEach(([key, value]) => {
-        if (key === 'menuIds') {
-          // Handle menuIds array specially
-          formData.append('menuIds', JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
+      return apiRequest("/api/menu", {
+        method: "POST", 
+        body: {
+          ...data,
+          price: Number(data.price)
         }
       });
-      
-      const token = localStorage.getItem('ic_pasta_admin_token');
-      
-      const response = await fetch("/api/menu", {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create menu item");
-      }
-      
-      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -123,34 +102,13 @@ export default function MenuTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuItemForm }) => {
-      const formData = new FormData();
-      
-      // Append all form fields
-      Object.entries(data).forEach(([key, value]) => {
-        if (key === 'menuIds') {
-          // Handle menuIds array specially
-          formData.append('menuIds', JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
+      return apiRequest(`/api/menu/${id}`, {
+        method: "PUT",
+        body: {
+          ...data,
+          price: Number(data.price)
         }
       });
-      
-      const token = localStorage.getItem('ic_pasta_admin_token');
-      
-      const response = await fetch(`/api/menu/${id}`, {
-        method: "PUT",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update menu item");
-      }
-      
-      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -428,10 +386,11 @@ export default function MenuTab() {
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Image URL</FormLabel>
                       <FormControl>
-                        <ImageUpload
-                          value={field.value}
-                          onChange={field.onChange}
+                        <Input
+                          placeholder="https://example.com/image.jpg"
+                          {...field}
                           disabled={createMutation.isPending || updateMutation.isPending}
                         />
                       </FormControl>
