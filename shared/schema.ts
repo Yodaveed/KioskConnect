@@ -80,7 +80,7 @@ export const orderItems = pgTable("order_items", {
 // Inventory management tables
 export const inventoryItems = pgTable("inventory_items", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   quantity: integer("quantity").notNull().default(0),
   unit: text("unit").notNull(), // e.g. "oz", "each", "box"
   parLevel: integer("par_level").notNull().default(0), // restock threshold

@@ -190,6 +190,11 @@ Changelog:
 - July 19, 2025. Updated admin interface components to use simple URL input fields instead of file upload components
 - July 19, 2025. Enhanced validation schemas now include proper URL format validation for external image URLs
 - July 19, 2025. System now supports external image hosting for better scalability and reduced server storage requirements
+- July 19, 2025. Fixed authentication system to use secure HTTP-only cookies instead of Bearer token authentication
+- July 19, 2025. Successfully completed inventory system implementation with end-of-day tally functionality for staff
+- July 19, 2025. Populated inventory with all 50 current menu items including special mappings (e.g., "turkey burger" → "vanilla")
+- July 19, 2025. Added unique constraints to inventory table and implemented batch adjustment API with audit logging
+- July 19, 2025. Manual Ticket Entry now serves as professional inventory tally system for physical stock counting
 ```
 
 ## User Preferences
