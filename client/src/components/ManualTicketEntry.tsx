@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Receipt, Plus, Minus, Trash2, DollarSign } from "lucide-react";
+import { Calculator, Save, RotateCcw, Package, TrendingUp, TrendingDown } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface InventoryItem {
@@ -19,20 +19,17 @@ interface InventoryItem {
   parLevel: number;
 }
 
-interface TicketItem {
+interface TallyEntry {
   inventoryItemId: number;
-  quantity: number;
-  name?: string;
-  unit?: string;
-  availableQuantity?: number;
+  inventoryName: string;
+  currentQuantity: number;
+  tallyCount: number;
+  unit: string;
 }
 
 export default function ManualTicketEntry() {
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>([]);
-  const [customerName, setCustomerName] = useState("");
-  const [totalAmount, setTotalAmount] = useState(0);
+  const [tallyEntries, setTallyEntries] = useState<TallyEntry[]>([]);
   const [note, setNote] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -41,31 +38,45 @@ export default function ManualTicketEntry() {
   const { data: inventoryData, isLoading } = useQuery({
     queryKey: ["/api/inventory"],
   });
+
+  // Initialize tally entries when inventory data loads
+  useEffect(() => {
+    if (inventoryData?.data && tallyEntries.length === 0) {
+      const entries: TallyEntry[] = inventoryData.data.map((item: InventoryItem) => ({
+        inventoryItemId: item.id,
+        inventoryName: item.name,
+        currentQuantity: item.quantity,
+        tallyCount: 0,
+        unit: item.unit
+      }));
+      setTallyEntries(entries);
+    }
+  }, [inventoryData, tallyEntries.length]);
   
-  // Submit manual ticket mutation
-  const submitTicketMutation = useMutation({
-    mutationFn: (data: {
-      items: TicketItem[];
-      totalAmount: number;
-      customerName?: string;
-      note?: string;
-    }) => apiRequest("/api/manual-ticket", {
+  // Submit tally adjustments mutation
+  const submitTallyMutation = useMutation({
+    mutationFn: (adjustments: Array<{
+      inventoryItemId: number;
+      adjustment: number;
+      reason: string;
+      note: string;
+    }>) => apiRequest("/api/inventory-adjustments", {
       method: "POST",
-      body: data
+      body: { adjustments }
     }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       
-      // Reset form
-      setTicketItems([]);
-      setCustomerName("");
-      setTotalAmount(0);
+      // Reset tally counts but keep entries
+      setTallyEntries(prev => prev.map(entry => ({
+        ...entry,
+        tallyCount: 0
+      })));
       setNote("");
       
       toast({
         title: "Success",
-        description: `Manual ticket ${data.data.orderNumber} created successfully`,
+        description: "Inventory tally submitted successfully",
       });
     },
     onError: (error: Error) => {
@@ -77,312 +88,180 @@ export default function ManualTicketEntry() {
     },
   });
   
-  const inventory: InventoryItem[] = inventoryData?.data?.inventory || [];
-  
-  // Filter inventory based on search term
-  const filteredInventory = inventory.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    item.quantity > 0 // Only show items with stock
-  );
-  
-  const addItemToTicket = (item: InventoryItem) => {
-    const existingIndex = ticketItems.findIndex(ti => ti.inventoryItemId === item.id);
-    
-    if (existingIndex >= 0) {
-      // Update existing item quantity
-      const updatedItems = [...ticketItems];
-      const currentQty = updatedItems[existingIndex].quantity;
-      
-      if (currentQty >= item.quantity) {
-        toast({
-          title: "Warning",
-          description: `Cannot add more ${item.name}. Only ${item.quantity} ${item.unit} available.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      updatedItems[existingIndex].quantity += 1;
-      setTicketItems(updatedItems);
-    } else {
-      // Add new item to ticket
-      const newTicketItem: TicketItem = {
-        inventoryItemId: item.id,
-        quantity: 1,
-        name: item.name,
-        unit: item.unit,
-        availableQuantity: item.quantity
-      };
-      setTicketItems([...ticketItems, newTicketItem]);
-    }
+  const updateTallyCount = (inventoryItemId: number, count: number) => {
+    setTallyEntries(prev => prev.map(entry =>
+      entry.inventoryItemId === inventoryItemId
+        ? { ...entry, tallyCount: Math.max(0, count) }
+        : entry
+    ));
   };
-  
-  const updateItemQuantity = (inventoryItemId: number, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeItemFromTicket(inventoryItemId);
-      return;
-    }
-    
-    const item = inventory.find(i => i.id === inventoryItemId);
-    if (item && newQuantity > item.quantity) {
+
+  const resetTally = () => {
+    setTallyEntries(prev => prev.map(entry => ({
+      ...entry,
+      tallyCount: 0
+    })));
+    setNote("");
+  };
+
+  const submitTally = () => {
+    // Calculate adjustments based on tally vs current inventory
+    const adjustments = tallyEntries
+      .filter(entry => entry.tallyCount !== entry.currentQuantity)
+      .map(entry => ({
+        inventoryItemId: entry.inventoryItemId,
+        adjustment: entry.tallyCount - entry.currentQuantity,
+        reason: "Manual inventory tally",
+        note: note || `Tally count: ${entry.tallyCount}, Previous: ${entry.currentQuantity}`
+      }));
+
+    if (adjustments.length === 0) {
       toast({
-        title: "Warning",
-        description: `Cannot exceed available quantity of ${item.quantity} ${item.unit}`,
-        variant: "destructive",
+        title: "No Changes",
+        description: "Tally matches current inventory - no adjustments needed",
       });
       return;
     }
-    
-    setTicketItems(items =>
-      items.map(item =>
-        item.inventoryItemId === inventoryItemId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
-    );
+
+    submitTallyMutation.mutate(adjustments);
   };
-  
-  const removeItemFromTicket = (inventoryItemId: number) => {
-    setTicketItems(items => items.filter(item => item.inventoryItemId !== inventoryItemId));
-  };
-  
-  const handleSubmitTicket = () => {
-    if (ticketItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add at least one item to the ticket",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (totalAmount <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid total amount",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const ticketData = {
-      items: ticketItems.map(item => ({
-        inventoryItemId: item.inventoryItemId,
-        quantity: item.quantity
-      })),
-      totalAmount,
-      customerName: customerName || undefined,
-      note: note || undefined,
-    };
-    
-    submitTicketMutation.mutate(ticketData);
-  };
-  
+
+  const totalAdjustments = tallyEntries.filter(entry => 
+    entry.tallyCount !== entry.currentQuantity
+  ).length;
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading inventory...</div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="w-5 h-5" />
+            Manual Inventory Tally
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8">
+            <Package className="w-8 h-8 animate-spin" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
-  
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold flex items-center">
-          <Receipt className="w-8 h-8 mr-3" />
-          Manual Ticket Entry
-        </h1>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Available Inventory */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Available Inventory</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Search items..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="w-5 h-5" />
+            Manual Inventory Tally
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Count your physical inventory at the end of the day and enter the totals below. 
+            The system will automatically calculate and apply adjustments.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Badge variant={totalAdjustments > 0 ? "destructive" : "secondary"}>
+                {totalAdjustments} items with changes
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetTally}
+                disabled={submitTallyMutation.isPending}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+              <Button
+                onClick={submitTally}
+                disabled={submitTallyMutation.isPending || totalAdjustments === 0}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Submit Tally
+              </Button>
+            </div>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Item</TableHead>
+                <TableHead className="text-center">Current</TableHead>
+                <TableHead className="text-center">Tally Count</TableHead>
+                <TableHead className="text-center">Difference</TableHead>
+                <TableHead className="text-center">Unit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tallyEntries.map((entry) => {
+                const difference = entry.tallyCount - entry.currentQuantity;
+                
+                return (
+                  <TableRow key={entry.inventoryItemId}>
+                    <TableCell className="font-medium">
+                      {entry.inventoryName}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {entry.currentQuantity}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={entry.tallyCount}
+                        onChange={(e) => updateTallyCount(
+                          entry.inventoryItemId, 
+                          parseInt(e.target.value) || 0
+                        )}
+                        className="w-20 text-center mx-auto"
+                        disabled={submitTallyMutation.isPending}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {difference !== 0 && (
+                        <div className={`flex items-center justify-center gap-1 ${
+                          difference > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {difference > 0 ? (
+                            <TrendingUp className="w-4 h-4" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4" />
+                          )}
+                          {Math.abs(difference)}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {entry.unit}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+
+          {totalAdjustments > 0 && (
+            <div className="mt-4">
+              <Label htmlFor="tally-note">Notes (Optional)</Label>
+              <Textarea
+                id="tally-note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Add any notes about the inventory tally..."
+                className="mt-1"
+                disabled={submitTallyMutation.isPending}
               />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-96 overflow-y-auto">
-              <div className="space-y-2">
-                {filteredInventory.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between items-center p-3 border rounded hover:bg-gray-50"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {item.quantity} {item.unit} available
-                        {item.quantity <= item.parLevel && (
-                          <Badge variant="destructive" className="ml-2">Low Stock</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => addItemToTicket(item)}
-                      disabled={item.quantity === 0}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-                
-                {filteredInventory.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">
-                    {searchTerm ? "No items match your search" : "No inventory items available"}
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Current Ticket */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Ticket</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Customer Info */}
-              <div className="grid gap-4">
-                <div>
-                  <Label htmlFor="customerName">Customer Name (Optional)</Label>
-                  <Input
-                    id="customerName"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Enter customer name"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="totalAmount">Total Amount ($)</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      id="totalAmount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={totalAmount}
-                      onChange={(e) => setTotalAmount(parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="note">Note (Optional)</Label>
-                  <Textarea
-                    id="note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Additional notes..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-              
-              {/* Ticket Items */}
-              <div>
-                <h3 className="font-medium mb-2">Items</h3>
-                {ticketItems.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {ticketItems.map((item) => (
-                        <TableRow key={item.inventoryItemId}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{item.name}</div>
-                              <div className="text-xs text-gray-500">
-                                {item.availableQuantity} {item.unit} available
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateItemQuantity(item.inventoryItemId, item.quantity - 1)}
-                              >
-                                <Minus className="w-3 h-3" />
-                              </Button>
-                              <Input
-                                type="number"
-                                min="1"
-                                max={item.availableQuantity}
-                                value={item.quantity}
-                                onChange={(e) => updateItemQuantity(item.inventoryItemId, parseInt(e.target.value) || 1)}
-                                className="w-16 text-center"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateItemQuantity(item.inventoryItemId, item.quantity + 1)}
-                                disabled={item.quantity >= (item.availableQuantity || 0)}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeItemFromTicket(item.inventoryItemId)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center text-gray-500 py-8">
-                    No items added yet. Select items from the inventory list.
-                  </div>
-                )}
-              </div>
-              
-              {/* Submit Button */}
-              <div className="pt-4 border-t">
-                <Button
-                  onClick={handleSubmitTicket}
-                  disabled={submitTicketMutation.isPending || ticketItems.length === 0 || totalAmount <= 0}
-                  className="w-full"
-                  size="lg"
-                >
-                  {submitTicketMutation.isPending ? (
-                    "Submitting Ticket..."
-                  ) : (
-                    `Submit Ticket - $${totalAmount.toFixed(2)}`
-                  )}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

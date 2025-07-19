@@ -65,6 +65,7 @@ export interface IStorage {
   // Inventory adjustment log methods
   getInventoryAdjustments(): Promise<InventoryAdjustment[]>;
   getInventoryAdjustmentsByItem(itemId: number): Promise<InventoryAdjustment[]>;
+  createInventoryAdjustment(adjustment: InsertInventoryAdjustment): Promise<InventoryAdjustment>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -440,6 +441,24 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(inventoryAdjustments)
       .where(eq(inventoryAdjustments.inventoryItemId, itemId))
       .orderBy(desc(inventoryAdjustments.createdAt));
+  }
+
+  async createInventoryAdjustment(adjustment: InsertInventoryAdjustment): Promise<InventoryAdjustment> {
+    const [created] = await db
+      .insert(inventoryAdjustments)
+      .values(adjustment)
+      .returning();
+
+    // Update the inventory item quantity
+    await db
+      .update(inventoryItems)
+      .set({
+        quantity: sql`${inventoryItems.quantity} + ${adjustment.adjustment}`,
+        updatedAt: new Date()
+      })
+      .where(eq(inventoryItems.id, adjustment.inventoryItemId));
+
+    return created;
   }
 }
 

@@ -677,6 +677,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  // POST /api/inventory-adjustments - Batch inventory adjustments for tally
+  app.post("/api/inventory-adjustments", 
+    authenticateAdmin,
+    asyncHandler(async (req, res) => {
+      const { adjustments } = req.body;
+      
+      if (!adjustments || !Array.isArray(adjustments)) {
+        return res.status(400).json(errorResponse("Adjustments array required"));
+      }
+
+      const results = [];
+      for (const adjustment of adjustments) {
+        try {
+          const result = await storage.createInventoryAdjustment({
+            inventoryItemId: adjustment.inventoryItemId,
+            adjustment: adjustment.adjustment,
+            reason: adjustment.reason,
+            note: adjustment.note,
+            userId: req.user!.id
+          });
+          results.push(result);
+        } catch (error) {
+          console.error(`Failed to create adjustment for item ${adjustment.inventoryItemId}:`, error);
+        }
+      }
+      
+      // Audit log for batch adjustments
+      console.log(`Batch inventory adjustments (${adjustments.length} items) by admin ${req.user!.id} at ${new Date().toISOString()}`);
+      
+      res.json(successResponse(results, "Inventory adjustments applied"));
+    })
+  );
+
   // POST /api/inventory/:id/adjust - Adjust inventory quantity (add/remove for delivery, waste, etc.)
   app.post("/api/inventory/:id/adjust", 
     authenticateAdmin,
