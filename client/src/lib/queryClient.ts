@@ -27,6 +27,8 @@ export async function apiRequest(
   data?: unknown | undefined,
   extraHeaders?: Record<string, string>
 ): Promise<any> {
+  console.log(`API Request: ${method.toUpperCase()} ${url}`, data);
+  
   const headers: Record<string, string> = {};
   
   if (data) {
@@ -48,10 +50,13 @@ export async function apiRequest(
     credentials: "include",
   });
 
+  console.log(`API Response: ${method.toUpperCase()} ${url}`, res.status, res.ok);
+
   await throwIfResNotOk(res);
   
   // Handle both direct responses and API wrapper format
   const responseData = await res.json();
+  console.log(`API Success: ${method.toUpperCase()} ${url}`, responseData);
   
   // Check if it's wrapped in success format
   if (responseData.success !== undefined || responseData.data !== undefined) {
