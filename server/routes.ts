@@ -197,9 +197,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.isRequired = updateData.isRequired === 'true';
       }
       
-      const validatedData = enhancedInsertMenuItemSchema.partial().parse(updateData);
-      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
-      res.json(successResponse(menuItem, "Menu item updated successfully"));
+      try {
+        const validatedData = enhancedInsertMenuItemSchema.partial().parse(updateData);
+        const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
+        res.json(successResponse(menuItem, "Menu item updated successfully"));
+      } catch (validationError) {
+        console.error("Menu item validation error:", validationError);
+        console.error("Update data received:", updateData);
+        return res.status(400).json(errorResponse(validationError.message || "Validation failed"));
+      }
     })
   );
 
