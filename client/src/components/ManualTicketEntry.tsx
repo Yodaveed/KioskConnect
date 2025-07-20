@@ -89,7 +89,6 @@ export default function ManualTicketEntry() {
   });
   
   const updateTallyCount = (inventoryItemId: number, count: number) => {
-    console.log(`Updating tally for item ${inventoryItemId} to ${count}`);
     setTallyEntries(prev => prev.map(entry =>
       entry.inventoryItemId === inventoryItemId
         ? { ...entry, tallyCount: Math.max(0, count) }
@@ -115,8 +114,6 @@ export default function ManualTicketEntry() {
         reason: "Manual inventory tally",
         note: note || `Tally count: ${entry.tallyCount}, Previous: ${entry.currentQuantity}`
       }));
-
-    console.log("Submitting adjustments:", adjustments);
 
     if (adjustments.length === 0) {
       toast({

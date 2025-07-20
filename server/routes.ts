@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.isRequired = updateData.isRequired === 'true';
       }
       
-      const validatedData = insertMenuItemSchema.partial().parse(updateData);
+      const validatedData = enhancedInsertMenuItemSchema.partial().parse(updateData);
       const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
       res.json(successResponse(menuItem, "Menu item updated successfully"));
     })

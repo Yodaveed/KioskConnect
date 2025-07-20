@@ -195,6 +195,9 @@ Changelog:
 - July 19, 2025. Populated inventory with all 50 current menu items including special mappings (e.g., "turkey burger" → "vanilla")
 - July 19, 2025. Added unique constraints to inventory table and implemented batch adjustment API with audit logging
 - July 19, 2025. Manual Ticket Entry now serves as professional inventory tally system for physical stock counting
+- July 20, 2025. Fixed menu item update functionality by correcting schema validation references in server routes
+- July 20, 2025. Resolved Manual Ticket Entry component data structure access to properly display all inventory items
+- July 20, 2025. Both admin menu management and inventory tally systems now fully operational for staff use
 ```
 
 ## User Preferences

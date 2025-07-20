@@ -122,7 +122,7 @@ export default function MenuTab() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
+        title: "Error", 
         description: error.message || "Failed to update menu item",
         variant: "destructive",
       });
