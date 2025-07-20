@@ -73,12 +73,10 @@ export default function MenuTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MenuItemForm) => {
-      return apiRequest("/api/menu", {
-        method: "POST", 
-        body: {
-          ...data,
-          price: Number(data.price)
-        }
+      console.log("Creating menu item:", data);
+      return apiRequest("POST", "/api/menu", {
+        ...data,
+        price: Number(data.price)
       });
     },
     onSuccess: () => {
@@ -92,6 +90,7 @@ export default function MenuTab() {
       });
     },
     onError: (error: any) => {
+      console.error("Create error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create menu item",
@@ -102,12 +101,10 @@ export default function MenuTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuItemForm }) => {
-      return apiRequest(`/api/menu/${id}`, {
-        method: "PUT",
-        body: {
-          ...data,
-          price: Number(data.price)
-        }
+      console.log("Frontend attempting to update menu item:", id, data);
+      return apiRequest("PUT", `/api/menu/${id}`, {
+        ...data,
+        price: Number(data.price)
       });
     },
     onSuccess: () => {
@@ -121,6 +118,7 @@ export default function MenuTab() {
       });
     },
     onError: (error: any) => {
+      console.error("Menu update error:", error);
       toast({
         title: "Error", 
         description: error.message || "Failed to update menu item",
