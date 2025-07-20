@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IceCream, Settings, ArrowRight, ShoppingCart, Users } from "lucide-react";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { GuestBanner, OrderingTips } from "@/components/ui/guest-banner";
+
+
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import OrderSummary from "@/components/ordering/order-summary";
 import OrderConfirmation from "@/components/ordering/order-confirmation";
 import FreezeSticksFlow from "@/components/ordering/freeze-sticks-flow";
 import PintsFlow from "@/components/ordering/pints-flow";
-import EasyCart from "@/components/cart/easy-cart";
+import CartViewer from "@/components/cart/cart-viewer";
 import OrderWrapper from "@/components/ordering/order-wrapper";
 import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
@@ -89,7 +89,10 @@ export default function Home() {
         <div className="space-y-8">
           <div className="text-center">
             <h2 className="text-4xl font-bold text-dark-slate mb-4">Choose Your Experience</h2>
-            <LoadingSpinner size="lg">Loading menu options...</LoadingSpinner>
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-3">Loading menu options...</span>
+            </div>
           </div>
         </div>
       );
@@ -305,7 +308,7 @@ export default function Home() {
                         Manage your group orders and share your cart with others
                       </DialogDescription>
                     </DialogHeader>
-                    <EasyCart />
+                    <CartViewer />
                   </DialogContent>
                 </Dialog>
               )}

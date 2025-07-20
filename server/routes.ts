@@ -26,11 +26,9 @@ import {
   generalApiLimit,
   orderRateLimit
 } from "./middleware";
-// Removed file upload functionality - now using external URLs
 import { printerService } from "./printer";
 import { qrCodeService } from "./qr-generator";
 import { setupSecureAuth, authenticateAdmin, generateToken, verifyPassword, hashPassword, type AuthenticatedRequest } from "./auth";
-// Removed path import - no longer needed without file uploads
 import express from 'express';
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -41,8 +39,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', generalApiLimit);
   
   // ==================== STATIC FILE SERVING ====================
-  
-  // Removed static file serving for uploads - now using external URLs
 
   // ==================== MENU TYPE ROUTES ====================
   
