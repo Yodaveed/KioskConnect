@@ -41,12 +41,12 @@ export default function ManualTicketEntry() {
 
   // Initialize tally entries when inventory data loads
   useEffect(() => {
-    if (inventoryData?.data && tallyEntries.length === 0) {
-      const entries: TallyEntry[] = inventoryData.data.map((item: InventoryItem) => ({
+    if (inventoryData?.inventory && tallyEntries.length === 0) {
+      const entries: TallyEntry[] = inventoryData.inventory.map((item: InventoryItem) => ({
         inventoryItemId: item.id,
         inventoryName: item.name,
         currentQuantity: item.quantity,
-        tallyCount: 0,
+        tallyCount: item.quantity, // Start with current quantity for easier tallying
         unit: item.unit
       }));
       setTallyEntries(entries);
