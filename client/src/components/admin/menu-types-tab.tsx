@@ -54,10 +54,7 @@ export default function MenuTypesTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MenuForm) => {
-      return apiRequest("/api/menus", {
-        method: "POST",
-        body: data
-      });
+      return apiRequest("POST", "/api/menus", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menus"] });
@@ -79,10 +76,7 @@ export default function MenuTypesTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuForm }) => {
-      return apiRequest(`/api/menus/${id}`, {
-        method: "PUT",
-        body: data
-      });
+      return apiRequest("PUT", `/api/menus/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menus"] });

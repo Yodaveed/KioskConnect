@@ -70,14 +70,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm">Welcome, Admin</span>
-            <Button
-              onClick={() => setLocation("/admin/qr")}
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-dark-slate"
-            >
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Manager
-            </Button>
+
             <Button
               onClick={() => setLocation("/")}
               className="bg-primary hover:bg-primary/90"

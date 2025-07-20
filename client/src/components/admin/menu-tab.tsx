@@ -113,7 +113,7 @@ export default function MenuTab() {
         maxQuantity: null, // Optional field
         isRequired: false // Optional field
       };
-      console.log("Sending menu update payload:", JSON.stringify(payload, null, 2));
+
       return apiRequest("PUT", `/api/menu/${id}`, payload);
     },
     onSuccess: () => {

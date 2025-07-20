@@ -8,7 +8,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
-import QRManager from "@/pages/qr-manager";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,7 +16,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/admin" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/qr" component={QRManager} />
+
       <Route component={NotFound} />
     </Switch>
   );

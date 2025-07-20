@@ -52,7 +52,6 @@ export default function Home() {
       }
       setQrInfo({ table: tableNumber, location: location || undefined });
       setShowGuestBanner(true);
-      console.log(`QR Code detected: Table ${tableNumber}${location ? ` at ${location}` : ''}`);
     }
   }, []);
 
