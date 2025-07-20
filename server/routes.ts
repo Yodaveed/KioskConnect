@@ -203,15 +203,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
+        console.log("Attempting validation with updateData:", JSON.stringify(updateData, null, 2));
         const validatedData = enhancedInsertMenuItemSchema.partial().parse(updateData);
+        console.log("Validation successful, calling storage.updateMenuItem");
         const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
         res.json(successResponse(menuItem, "Menu item updated successfully"));
       } catch (validationError) {
-        console.error("Menu item validation error:", validationError);
+        console.error("=== MENU ITEM VALIDATION ERROR ===");
+        console.error("Error object:", validationError);
         console.error("Update data received:", JSON.stringify(updateData, null, 2));
         if (validationError.errors) {
-          console.error("Validation details:", JSON.stringify(validationError.errors, null, 2));
+          console.error("Detailed validation errors:", JSON.stringify(validationError.errors, null, 2));
         }
+        console.error("=== END VALIDATION ERROR ===");
         return res.status(400).json(errorResponse(validationError.message || "Validation failed"));
       }
     })
