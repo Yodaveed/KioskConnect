@@ -1,0 +1,49 @@
+no resource to load, early way out
+popup.js:1 Uncaught TypeError: Cannot read properties of undefined (reading 'create')
+    at popup.js:1:13Understand this error
+index-CfPh2-Ql.js:48 API Request: POST /api/auth/login {
+  "username": "admin",
+  "password": "admin123"
+}
+index-CfPh2-Ql.js:48 API Response: POST /api/auth/login 200 true
+index-CfPh2-Ql.js:48 API Success: POST /api/auth/login Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/94/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/94/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/94/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Strawberry",
+  "description": "Lusciously smooth strawberry ice cream blended with ripe strawberry puree. Bright, refreshing, and naturally sweet.",
+  "category": "base",
+  "price": 7.99,
+  "imageUrl": "/uploads/menu-item-1752864050513-990374446.png",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/94 {
+  "name": "Strawberry",
+  "description": "Lusciously smooth strawberry ice cream blended with ripe strawberry puree. Bright, refreshing, and naturally sweet.",
+  "category": "base",
+  "price": 7.99,
+  "imageUrl": "/uploads/menu-item-1752864050513-990374446.png",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+/api/menu/94:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/94 400 false

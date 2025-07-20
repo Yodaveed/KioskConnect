@@ -203,6 +203,9 @@ Changelog:
 - July 20, 2025. Added comprehensive null safety to inventory component preventing crashes from undefined categories
 - July 20, 2025. Enhanced API error logging for better debugging and troubleshooting capabilities
 - July 20, 2025. All admin dashboard functionality now fully operational with proper validation and error handling
+- July 20, 2025. Resolved final validation error: "Invalid image URL format" for menu item updates  
+- July 20, 2025. Updated validation schema to accept both relative paths (/uploads/...) and full HTTP/HTTPS URLs
+- July 20, 2025. Menu item updates now working perfectly - all 400 validation errors resolved
 ```
 
 ## User Preferences

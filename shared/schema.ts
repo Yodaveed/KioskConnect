@@ -280,6 +280,9 @@ export const enhancedInsertMenuItemSchema = insertMenuItemSchema.extend({
   price: z.number().min(0, "Price must be positive"),
   imageUrl: z.string().optional().refine((val) => {
     if (!val) return true;
+    // Allow relative paths starting with /
+    if (val.startsWith('/')) return true;
+    // Allow full HTTP/HTTPS URLs
     try {
       const url = new URL(val);
       return ['http:', 'https:'].includes(url.protocol);
