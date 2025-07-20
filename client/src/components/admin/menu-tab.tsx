@@ -76,7 +76,10 @@ export default function MenuTab() {
 
       return apiRequest("POST", "/api/menu", {
         ...data,
-        price: Number(data.price)
+        price: Number(data.price),
+        sortOrder: 0,
+        maxQuantity: null,
+        isRequired: false
       });
     },
     onSuccess: () => {
@@ -102,10 +105,16 @@ export default function MenuTab() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: MenuItemForm }) => {
 
-      return apiRequest("PUT", `/api/menu/${id}`, {
+      const payload = {
         ...data,
-        price: Number(data.price)
-      });
+        price: Number(data.price),
+        menuIds: data.menuIds || [],
+        sortOrder: 0, // Add required field for backend validation
+        maxQuantity: null, // Optional field
+        isRequired: false // Optional field
+      };
+      console.log("Sending menu update payload:", payload);
+      return apiRequest("PUT", `/api/menu/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });

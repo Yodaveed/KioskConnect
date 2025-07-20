@@ -25,9 +25,14 @@ export default function InventoryTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: inventoryItems = [], isLoading } = useQuery<InventoryItem[]>({
+  const { data: inventoryResponse, isLoading } = useQuery({
     queryKey: ["/api/inventory"],
   });
+
+  // Handle different response formats from the API
+  const inventoryItems = Array.isArray(inventoryResponse) 
+    ? inventoryResponse 
+    : inventoryResponse?.inventory || [];
 
   const categories = ["all", ...new Set(inventoryItems.map(item => item.category))];
   

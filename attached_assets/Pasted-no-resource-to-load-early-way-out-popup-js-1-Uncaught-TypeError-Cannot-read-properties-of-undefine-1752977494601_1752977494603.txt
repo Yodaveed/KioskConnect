@@ -1,0 +1,43 @@
+no resource to load, early way out
+popup.js:1 Uncaught TypeError: Cannot read properties of undefined (reading 'create')
+    at popup.js:1:13Understand this error
+index-BClryEQy.js:48 API Request: POST /api/auth/login Object
+index-BClryEQy.js:48 API Response: POST /api/auth/login 200 true
+index-BClryEQy.js:48 API Success: POST /api/auth/login Object
+index-BClryEQy.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-BClryEQy.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-BClryEQy.js:48 API Success: GET /api/menu?menuId=6 Object
+index-BClryEQy.js:48 API Request: GET /api/menu-items/93/menus undefined
+index-BClryEQy.js:48 API Response: GET /api/menu-items/93/menus 200 true
+index-BClryEQy.js:48 API Success: GET /api/menu-items/93/menus Object
+index-BClryEQy.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-BClryEQy.js:317Understand this warning
+index-BClryEQy.js:48 API Request: PUT /api/menu/93 Object
+/api/menu/93:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+index-BClryEQy.js:48 API Response: PUT /api/menu/93 400 false
+index-BClryEQy.js:48 API Request: POST /api/inventory-adjustments Object
+index-BClryEQy.js:48 API Response: POST /api/inventory-adjustments 200 true
+index-BClryEQy.js:48 API Success: POST /api/inventory-adjustments Object
+index-BClryEQy.js:40 TypeError: s.map is not a function
+    at HR (index-BClryEQy.js:317:214337)
+    at Ph (index-BClryEQy.js:38:16998)
+    at _x (index-BClryEQy.js:40:43963)
+    at Nx (index-BClryEQy.js:40:39727)
+    at Kj (index-BClryEQy.js:40:39655)
+    at yc (index-BClryEQy.js:40:39508)
+    at mf (index-BClryEQy.js:40:35875)
+    at Qp (index-BClryEQy.js:40:36678)
+    at ds (index-BClryEQy.js:38:3274)
+    at index-BClryEQy.js:40:34207
+tf @ index-BClryEQy.js:40Understand this error
+index-BClryEQy.js:38 Uncaught TypeError: s.map is not a function
+    at HR (index-BClryEQy.js:317:214337)
+    at Ph (index-BClryEQy.js:38:16998)
+    at _x (index-BClryEQy.js:40:43963)
+    at Nx (index-BClryEQy.js:40:39727)
+    at Kj (index-BClryEQy.js:40:39655)
+    at yc (index-BClryEQy.js:40:39508)
+    at mf (index-BClryEQy.js:40:35875)
+    at Qp (index-BClryEQy.js:40:36678)
+    at ds (index-BClryEQy.js:38:3274)
+    at index-BClryEQy.js:40:34207

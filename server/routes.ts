@@ -197,6 +197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.isRequired = updateData.isRequired === 'true';
       }
       
+      // Ensure sortOrder is present (required by enhanced schema)
+      if (updateData.sortOrder === undefined) {
+        updateData.sortOrder = 0;
+      }
+      
       try {
         const validatedData = enhancedInsertMenuItemSchema.partial().parse(updateData);
         const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
