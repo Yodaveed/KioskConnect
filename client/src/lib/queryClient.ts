@@ -27,7 +27,7 @@ export async function apiRequest(
   data?: unknown | undefined,
   extraHeaders?: Record<string, string>
 ): Promise<any> {
-  console.log(`API Request: ${method.toUpperCase()} ${url}`, data);
+  console.log(`API Request: ${method.toUpperCase()} ${url}`, JSON.stringify(data, null, 2));
   
   const headers: Record<string, string> = {};
   
