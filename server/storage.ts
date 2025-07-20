@@ -60,6 +60,7 @@ export interface IStorage {
   createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
   updateInventoryItem(id: number, item: Partial<InsertInventoryItem>): Promise<InventoryItem>;
   archiveInventoryItem(id: number): Promise<void>;
+  clearInventory(): Promise<void>;
   adjustInventoryItem(adjustment: InsertInventoryAdjustment): Promise<InventoryItem>;
   
   // Inventory adjustment log methods
@@ -459,6 +460,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inventoryItems.id, adjustment.inventoryItemId));
 
     return created;
+  }
+
+  async clearInventory(): Promise<void> {
+    // Clear adjustments first to avoid foreign key constraint violation
+    await db.delete(inventoryAdjustments);
+    await db.delete(inventoryItems);
   }
 }
 

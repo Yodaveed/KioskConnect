@@ -640,6 +640,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== INVENTORY MANAGEMENT ROUTES ====================
   // SECURITY: All inventory routes require admin authentication
 
+  // POST /api/inventory/update-from-menu - Update inventory with actual ingredient names from menu items
+  app.post("/api/inventory/update-from-menu", 
+    authenticateAdmin,
+    asyncHandler(async (req, res) => {
+      // Get all menu items
+      const menuItems = await storage.getMenuItems();
+      
+      // Extract ingredient mapping
+      const ingredientMap = new Map();
+      
+      menuItems.forEach(item => {
+        const name = item.name;
+        const match = name.match(/\(([^)]+)\)$/);
+        
+        if (match) {
+          const actualName = match[1].trim();
+          const category = item.category;
+          const key = `${actualName}_${category}`;
+          
+          if (!ingredientMap.has(key)) {
+            ingredientMap.set(key, {
+              actualName,
+              category,
+              themedNames: [name]
+            });
+          } else {
+            ingredientMap.get(key).themedNames.push(name);
+          }
+        } else {
+          const key = `${name}_${item.category}`;
+          if (!ingredientMap.has(key)) {
+            ingredientMap.set(key, {
+              actualName: name,
+              category: item.category,
+              themedNames: [name]
+            });
+          }
+        }
+      });
+
+      // Clear existing inventory items
+      await storage.clearInventory();
+      
+      // Insert new inventory items based on actual ingredient names
+      for (const ingredient of ingredientMap.values()) {
+        const { actualName, category } = ingredient;
+        
+        // Set default quantities based on category
+        let quantity = 50;
+        let unit = 'units';
+        let parLevel = 10;
+        
+        if (category === 'base') {
+          unit = 'scoops';
+          quantity = 100;
+          parLevel = 20;
+        } else if (category === 'sauce') {
+          unit = 'portions';
+          quantity = 80;
+          parLevel = 15;
+        } else if (category === 'topping') {
+          unit = 'portions';
+          quantity = 60;
+          parLevel = 12;
+        }
+
+        await storage.createInventoryItem({
+          name: actualName,
+          category,
+          quantity,
+          unit,
+          parLevel,
+          imageUrl: null,
+        });
+      }
+
+      res.json(successResponse({ 
+        ingredientCount: ingredientMap.size,
+        mapping: Array.from(ingredientMap.values())
+      }, `Inventory updated with ${ingredientMap.size} unique ingredients`));
+      
+    })
+  );
+
   // GET /api/inventory - Get all inventory with low-stock alerts
   app.get("/api/inventory", 
     authenticateAdmin,

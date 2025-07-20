@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Package, Search, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import InventoryUpdater from "@/components/admin/inventory-updater";
 
 interface InventoryItem {
   id: number;
@@ -113,6 +114,9 @@ export default function InventoryTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Smart Inventory Updater */}
+      <InventoryUpdater />
 
       {/* Filters */}
       <Card>
