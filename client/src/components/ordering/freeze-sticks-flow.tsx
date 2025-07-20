@@ -43,7 +43,7 @@ export default function FreezeSticksFlow() {
   });
 
   const { data: flavors = [] } = useQuery({
-    queryKey: [`/api/menu/flavor?menuId=${selectedMenuId}`],
+    queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
