@@ -292,6 +292,7 @@ export const enhancedInsertMenuItemSchema = insertMenuItemSchema.extend({
   isSoldOut: z.boolean().default(false),
   maxQuantity: z.number().int().min(1).nullable().optional(),
   isRequired: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
 });
 
 export const enhancedInsertOrderSchema = insertOrderSchema.extend({
