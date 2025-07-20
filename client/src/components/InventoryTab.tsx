@@ -12,11 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 interface InventoryItem {
   id: number;
   name: string;
-  category: string;
-  currentStock: number;
-  minimumStock: number;
-  isLowStock: boolean;
-  createdAt: string;
+  category?: string;
+  currentStock?: number;
+  minimumStock?: number;
+  isLowStock?: boolean;
+  createdAt?: string;
+  quantity?: number; // Alternative field name
+  parLevel?: number; // Alternative field name
 }
 
 export default function InventoryTab() {
@@ -34,17 +36,19 @@ export default function InventoryTab() {
     ? inventoryResponse 
     : inventoryResponse?.inventory || [];
 
-  const categories = ["all", ...new Set(inventoryItems.map(item => item.category))];
+  const categories = ["all", ...new Set(inventoryItems.map(item => item.category || "uncategorized").filter(Boolean))];
   
   const filteredItems = inventoryItems.filter(item => {
+    if (!item || !item.name) return false;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    const itemCategory = item.category || "uncategorized";
+    const matchesCategory = selectedCategory === "all" || itemCategory === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const lowStockItems = inventoryItems.filter(item => item.isLowStock);
+  const lowStockItems = inventoryItems.filter(item => item && (item.isLowStock || (item.quantity && item.parLevel && item.quantity <= item.parLevel)));
   const totalItems = inventoryItems.length;
-  const outOfStockItems = inventoryItems.filter(item => item.currentStock === 0);
+  const outOfStockItems = inventoryItems.filter(item => item && ((item.currentStock || 0) === 0 || (item.quantity || 0) === 0));
 
   if (isLoading) {
     return (
@@ -165,22 +169,22 @@ export default function InventoryTab() {
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                        {(item.category || "uncategorized").charAt(0).toUpperCase() + (item.category || "uncategorized").slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <span className={`font-medium ${
-                        item.currentStock === 0 ? 'text-red-600' : 
-                        item.isLowStock ? 'text-yellow-600' : 'text-green-600'
+                        (item.currentStock || item.quantity || 0) === 0 ? 'text-red-600' : 
+                        (item.isLowStock || (item.quantity && item.parLevel && item.quantity <= item.parLevel)) ? 'text-yellow-600' : 'text-green-600'
                       }`}>
-                        {item.currentStock}
+                        {item.currentStock || item.quantity || 0}
                       </span>
                     </TableCell>
-                    <TableCell>{item.minimumStock}</TableCell>
+                    <TableCell>{item.minimumStock || item.parLevel || 0}</TableCell>
                     <TableCell>
-                      {item.currentStock === 0 ? (
+                      {(item.currentStock || item.quantity || 0) === 0 ? (
                         <Badge variant="destructive">Out of Stock</Badge>
-                      ) : item.isLowStock ? (
+                      ) : (item.isLowStock || (item.quantity && item.parLevel && item.quantity <= item.parLevel)) ? (
                         <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Low Stock</Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-green-100 text-green-800">In Stock</Badge>

@@ -1,0 +1,54 @@
+Error handling response: TypeError: Cannot destructure property 'pageViewId' of 'e' as it is undefined.
+    at chrome-extension://nenlahapcbofgnanklpelkaejcehkggg/notifications/pageView.js:1:1282Understand this error
+icpastakiosk.replit.app/:1 Unchecked runtime.lastError: The message port closed before a response was received.Understand this error
+icpastakiosk.replit.app/:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.Understand this error
+viewer.js:12530 no resource to load, early way out
+popup.js:1 Uncaught TypeError: Cannot read properties of undefined (reading 'create')
+    at popup.js:1:13Understand this error
+index-DhyjBjJx.js:48 API Request: POST /api/auth/login Object
+index-DhyjBjJx.js:48 API Response: POST /api/auth/login 200 true
+index-DhyjBjJx.js:48 API Success: POST /api/auth/login Object
+index-DhyjBjJx.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-DhyjBjJx.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-DhyjBjJx.js:48 API Success: GET /api/menu?menuId=6 Object
+index-DhyjBjJx.js:48 API Request: GET /api/menu-items/92/menus undefined
+index-DhyjBjJx.js:48 API Response: GET /api/menu-items/92/menus 200 true
+index-DhyjBjJx.js:48 API Success: GET /api/menu-items/92/menus Object
+index-DhyjBjJx.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-DhyjBjJx.js:317Understand this warning
+index-DhyjBjJx.js:317 Sending menu update payload: Object
+index-DhyjBjJx.js:48 API Request: PUT /api/menu/92 Object
+/api/menu/92:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+index-DhyjBjJx.js:48 API Response: PUT /api/menu/92 400 false
+index-DhyjBjJx.js:48 API Request: GET /api/menu-items/93/menus undefined
+index-DhyjBjJx.js:48 API Response: GET /api/menu-items/93/menus 200 true
+index-DhyjBjJx.js:48 API Success: GET /api/menu-items/93/menus Object
+index-DhyjBjJx.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-DhyjBjJx.js:317Understand this warning
+index-DhyjBjJx.js:317 Sending menu update payload: Object
+index-DhyjBjJx.js:48 API Request: PUT /api/menu/93 Object
+/api/menu/93:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+index-DhyjBjJx.js:48 API Response: PUT /api/menu/93 400 false
+index-DhyjBjJx.js:40 TypeError: Cannot read properties of undefined (reading 'charAt')
+    at index-DhyjBjJx.js:317:217482
+    at Array.map (<anonymous>)
+    at HR (index-DhyjBjJx.js:317:217413)
+    at Ph (index-DhyjBjJx.js:38:16998)
+    at nf (index-DhyjBjJx.js:40:3139)
+    at _x (index-DhyjBjJx.js:40:44737)
+    at Nx (index-DhyjBjJx.js:40:39727)
+    at Kj (index-DhyjBjJx.js:40:39655)
+    at yc (index-DhyjBjJx.js:40:39508)
+    at mf (index-DhyjBjJx.js:40:35875)
+tf @ index-DhyjBjJx.js:40Understand this error
+index-DhyjBjJx.js:38 Uncaught TypeError: Cannot read properties of undefined (reading 'charAt')
+    at index-DhyjBjJx.js:317:217482
+    at Array.map (<anonymous>)
+    at HR (index-DhyjBjJx.js:317:217413)
+    at Ph (index-DhyjBjJx.js:38:16998)
+    at nf (index-DhyjBjJx.js:40:3139)
+    at _x (index-DhyjBjJx.js:40:44737)
+    at Nx (index-DhyjBjJx.js:40:39727)
+    at Kj (index-DhyjBjJx.js:40:39655)
+    at yc (index-DhyjBjJx.js:40:39508)
+    at mf (index-DhyjBjJx.js:40:35875)

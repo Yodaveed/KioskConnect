@@ -208,7 +208,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(successResponse(menuItem, "Menu item updated successfully"));
       } catch (validationError) {
         console.error("Menu item validation error:", validationError);
-        console.error("Update data received:", updateData);
+        console.error("Update data received:", JSON.stringify(updateData, null, 2));
+        if (validationError.errors) {
+          console.error("Validation details:", JSON.stringify(validationError.errors, null, 2));
+        }
         return res.status(400).json(errorResponse(validationError.message || "Validation failed"));
       }
     })
