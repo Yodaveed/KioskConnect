@@ -60,10 +60,9 @@ export default function ManualTicketEntry() {
       adjustment: number;
       reason: string;
       note: string;
-    }>) => apiRequest("/api/inventory-adjustments", {
-      method: "POST",
-      body: { adjustments }
-    }),
+    }>) => {
+      return apiRequest("POST", "/api/inventory-adjustments", { adjustments });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       
