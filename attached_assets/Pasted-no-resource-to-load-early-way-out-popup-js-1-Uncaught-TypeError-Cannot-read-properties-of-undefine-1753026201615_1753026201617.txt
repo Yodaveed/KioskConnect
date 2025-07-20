@@ -1,0 +1,492 @@
+no resource to load, early way out
+popup.js:1 Uncaught TypeError: Cannot read properties of undefined (reading 'create')
+    at popup.js:1:13Understand this error
+index-CfPh2-Ql.js:48 API Request: POST /api/auth/login {
+  "username": "admin",
+  "password": "admin123"
+}
+index-CfPh2-Ql.js:48 API Response: POST /api/auth/login 200 true
+index-CfPh2-Ql.js:48 API Success: POST /api/auth/login Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/95/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/95/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/95/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Cookies n' Cream",
+  "description": "Smooth vanilla ice cream folded with crushed Oreo cookies. Rich, creamy, and studded with classic chocolate cookie pieces.",
+  "category": "base",
+  "price": 7.99,
+  "imageUrl": "/uploads/menu-item-1752864070089-235871482.png",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/95 {
+  "name": "Cookies n' Cream",
+  "description": "Smooth vanilla ice cream folded with crushed Oreo cookies. Rich, creamy, and studded with classic chocolate cookie pieces.",
+  "category": "base",
+  "price": 7.99,
+  "imageUrl": "/uploads/menu-item-1752864070089-235871482.png",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/95 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/95 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/113/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/113/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/113/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Italian Spices",
+  "description": "A rainbow blend of crunchy sugar sprinkles, adding a playful pop of color and sweet snap to every bite",
+  "category": "topping",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    7,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/113 {
+  "name": "Italian Spices",
+  "description": "A rainbow blend of crunchy sugar sprinkles, adding a playful pop of color and sweet snap to every bite",
+  "category": "topping",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    7,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/113 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/113 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/87/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/87/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/87/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Squid Ink (Chocolate & Salted Carmel)",
+  "description": "Our housemade dark chocolate sauce and golden salted caramel swirl together for the perfect hit of rich, bittersweet cocoa and buttery, sea‑salted sweetness.",
+  "category": "sauce",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/87 {
+  "name": "Squid Ink (Chocolate & Salted Carmel)",
+  "description": "Our housemade dark chocolate sauce and golden salted caramel swirl together for the perfect hit of rich, bittersweet cocoa and buttery, sea‑salted sweetness.",
+  "category": "sauce",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/87 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/87 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: DELETE /api/menu/93 undefined
+index-CfPh2-Ql.js:48 API Response: DELETE /api/menu/93 200 true
+index-CfPh2-Ql.js:48 API Success: DELETE /api/menu/93 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: DELETE /api/menu/92 undefined
+index-CfPh2-Ql.js:48 API Response: DELETE /api/menu/92 200 true
+index-CfPh2-Ql.js:48 API Success: DELETE /api/menu/92 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: DELETE /api/menu/94 undefined
+index-CfPh2-Ql.js:48 API Response: DELETE /api/menu/94 200 true
+index-CfPh2-Ql.js:48 API Success: DELETE /api/menu/94 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/95/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/95/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/95/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Chef's Special (Cookies n' Cream)",
+  "description": "Smooth vanilla ice cream folded with crushed Oreo cookies. Rich, creamy, and studded with classic chocolate cookie pieces.",
+  "category": "base",
+  "price": 8,
+  "imageUrl": "/uploads/menu-item-1752864070089-235871482.png",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/95 {
+  "name": "Chef's Special (Cookies n' Cream)",
+  "description": "Smooth vanilla ice cream folded with crushed Oreo cookies. Rich, creamy, and studded with classic chocolate cookie pieces.",
+  "category": "base",
+  "price": 8,
+  "imageUrl": "/uploads/menu-item-1752864070089-235871482.png",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/95 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/95 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/113/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/113/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/113/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Italian Spices (Sprinkles)",
+  "description": "A rainbow blend of crunchy sugar sprinkles, adding a playful pop of color and sweet snap to every bite",
+  "category": "topping",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    7,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/113 {
+  "name": "Italian Spices (Sprinkles)",
+  "description": "A rainbow blend of crunchy sugar sprinkles, adding a playful pop of color and sweet snap to every bite",
+  "category": "topping",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    7,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/113 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/113 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+2index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/95/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/95/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/95/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/95/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/95/menus Object
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Chef's Special (Cookies n' Cream)",
+  "description": "Smooth vanilla ice cream folded with crushed Oreo cookies. Rich, creamy, and studded with classic chocolate cookie pieces.",
+  "category": "base",
+  "price": 8,
+  "imageUrl": "https://images.squarespace-cdn.com/content/v1/6467ec3883ea737aca2c202a/b9707c6d-9321-4d83-8e4e-2eaf25d104f9/Cookies+N%27+Cream.png?format=750w",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/95 {
+  "name": "Chef's Special (Cookies n' Cream)",
+  "description": "Smooth vanilla ice cream folded with crushed Oreo cookies. Rich, creamy, and studded with classic chocolate cookie pieces.",
+  "category": "base",
+  "price": 8,
+  "imageUrl": "https://images.squarespace-cdn.com/content/v1/6467ec3883ea737aca2c202a/b9707c6d-9321-4d83-8e4e-2eaf25d104f9/Cookies+N%27+Cream.png?format=750w",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/95 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/95 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+4index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/127/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/127/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/127/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/127/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/127/menus Object
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/127/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/127/menus Object
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/127/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/127/menus Object
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Basil Pesto (Pistachio)",
+  "description": "Silky, ice cream infused with freshly ground, in‑house pistachios for a naturally vibrant hue and deep, buttery‑nut flavor.",
+  "category": "base",
+  "price": 8,
+  "imageUrl": "https://images.squarespace-cdn.com/content/v1/6467ec3883ea737aca2c202a/51624ce9-6a41-44fd-851c-2152d0ac801e/Pistachio.png?format=750w",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/127 {
+  "name": "Basil Pesto (Pistachio)",
+  "description": "Silky, ice cream infused with freshly ground, in‑house pistachios for a naturally vibrant hue and deep, buttery‑nut flavor.",
+  "category": "base",
+  "price": 8,
+  "imageUrl": "https://images.squarespace-cdn.com/content/v1/6467ec3883ea737aca2c202a/51624ce9-6a41-44fd-851c-2152d0ac801e/Pistachio.png?format=750w",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/127 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/127 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu-items/106/menus undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu-items/106/menus 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu-items/106/menus Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+index-CfPh2-Ql.js:317 Sending menu update payload: {
+  "name": "Ricotta (Whipped Cream)",
+  "description": "Rich whipped heavy cream ",
+  "category": "topping",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    7,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Request: PUT /api/menu/106 {
+  "name": "Ricotta (Whipped Cream)",
+  "description": "Rich whipped heavy cream ",
+  "category": "topping",
+  "price": 0,
+  "imageUrl": "",
+  "isActive": true,
+  "isPremium": false,
+  "menuIds": [
+    6,
+    7,
+    8
+  ],
+  "sortOrder": 0,
+  "maxQuantity": null,
+  "isRequired": false
+}
+index-CfPh2-Ql.js:48 API Response: PUT /api/menu/106 200 true
+index-CfPh2-Ql.js:48 API Success: PUT /api/menu/106 Object
+index-CfPh2-Ql.js:48 API Request: GET /api/menu?menuId=6 undefined
+index-CfPh2-Ql.js:48 API Response: GET /api/menu?menuId=6 200 true
+index-CfPh2-Ql.js:48 API Success: GET /api/menu?menuId=6 Object
+index-CfPh2-Ql.js:48 API Request: POST /api/orders {
+  "totalAmount": "8.00",
+  "items": {
+    "base": {
+      "id": 95,
+      "name": "Chef's Special (Cookies n' Cream)",
+      "category": "base",
+      "price": 8,
+      "modifiers": []
+    },
+    "sauces": [
+      {
+        "id": 86,
+        "name": "Alfredo",
+        "category": "sauce",
+        "price": 0
+      },
+      {
+        "id": 85,
+        "name": "Marinara",
+        "category": "sauce",
+        "price": 0
+      }
+    ],
+    "toppings": [
+      {
+        "id": 111,
+        "name": "Black Olives (M&Ms)",
+        "category": "topping",
+        "price": 0
+      }
+    ]
+  }
+}
+/api/orders:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+index-CfPh2-Ql.js:48 API Response: POST /api/orders 400 false
+index-CfPh2-Ql.js:48 API Request: POST /api/orders {
+  "customerName": "3",
+  "totalAmount": "6.99",
+  "items": {
+    "menuType": "freeze-sticks",
+    "items": [
+      {
+        "type": "size",
+        "item": {
+          "id": 68,
+          "name": "3 Sticks",
+          "description": "Small portion - 3 freeze sticks",
+          "category": "size",
+          "price": "6.99",
+          "imageUrl": null,
+          "isActive": true,
+          "isPremium": false,
+          "isSoldOut": false,
+          "maxQuantity": 3,
+          "isRequired": false,
+          "sortOrder": 1,
+          "createdAt": "2025-07-03T18:31:31.636Z"
+        },
+        "quantity": 1
+      },
+      {
+        "type": "flavors",
+        "items": [
+          {
+            "flavor": {
+              "id": 72,
+              "name": "Chocolate",
+              "description": "Rich chocolate flavor",
+              "category": "flavor",
+              "price": "0.00",
+              "imageUrl": null,
+              "isActive": true,
+              "isPremium": false,
+              "isSoldOut": false,
+              "maxQuantity": null,
+              "isRequired": false,
+              "sortOrder": 2,
+              "createdAt": "2025-07-03T18:31:31.636Z"
+            },
+            "quantity": 3
+          }
+        ],
+        "quantity": 3
+      },
+      {
+        "type": "sauce",
+        "item": {
+          "id": 78,
+          "name": "Caramel Dip",
+          "description": "Sweet caramel dipping sauce",
+          "category": "sauce",
+          "price": "1.50",
+          "imageUrl": null,
+          "isActive": true,
+          "isPremium": false,
+          "isSoldOut": false,
+          "maxQuantity": null,
+          "isRequired": false,
+          "sortOrder": 2,
+          "createdAt": "2025-07-03T18:31:31.636Z"
+        },
+        "quantity": 1
+      }
+    ],
+    "addons": [],
+    "total": 6.99
+  }
+}
+/api/orders:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+index-CfPh2-Ql.js:48 API Response: POST /api/orders 400 false
+index-CfPh2-Ql.js:48 API Request: POST /api/auth/login {
+  "username": "admin",
+  "password": "admin123"
+}
+index-CfPh2-Ql.js:48 API Response: POST /api/auth/login 200 true
+index-CfPh2-Ql.js:48 API Success: POST /api/auth/login Object
+index-CfPh2-Ql.js:317 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-CfPh2-Ql.js:317Understand this warning
+3index-CfPh2-Ql.js:48 API Request: /API/MENUS/6 [object Object] undefined
