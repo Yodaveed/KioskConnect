@@ -468,6 +468,28 @@ export class DatabaseStorage implements IStorage {
     await db.delete(inventoryAdjustments);
     await db.delete(inventoryItems);
   }
+
+  async archiveInventoryItem(itemId: number, adminId?: number): Promise<void> {
+    // Archive the inventory item (soft delete) instead of permanent deletion
+    await db
+      .update(inventoryItems)
+      .set({ 
+        archived: true,
+        updatedAt: new Date()
+      })
+      .where(eq(inventoryItems.id, itemId));
+
+    // Log the archival action for audit trail
+    if (adminId) {
+      await db.insert(inventoryAdjustments).values({
+        inventoryItemId: itemId,
+        adjustment: 0, // No quantity change, just archival
+        reason: "Item removed from inventory",
+        note: `Archived by admin ID ${adminId}`,
+        userId: adminId
+      });
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

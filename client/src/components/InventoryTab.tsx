@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Search, AlertTriangle } from "lucide-react";
+import { Package, Search, AlertTriangle, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import InventoryUpdater from "@/components/admin/inventory-updater";
@@ -28,18 +28,39 @@ export default function InventoryTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Remove inventory item mutation
+  const removeItemMutation = useMutation({
+    mutationFn: (itemId: number) => {
+      return apiRequest("DELETE", `/api/inventory/${itemId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      toast({
+        title: "Success",
+        description: "Inventory item removed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const { data: inventoryResponse, isLoading } = useQuery({
     queryKey: ["/api/inventory"],
   });
 
   // Handle different response formats from the API
-  const inventoryItems = Array.isArray(inventoryResponse) 
+  const inventoryItems: InventoryItem[] = Array.isArray(inventoryResponse) 
     ? inventoryResponse 
     : inventoryResponse?.inventory || [];
 
-  const categories = ["all", ...new Set(inventoryItems.map(item => item.category || "uncategorized").filter(Boolean))];
+  const categories = ["all", ...Array.from(new Set(inventoryItems.map((item: InventoryItem) => item.category || "uncategorized").filter(Boolean)))];
   
-  const filteredItems = inventoryItems.filter(item => {
+  const filteredItems = inventoryItems.filter((item: InventoryItem) => {
     if (!item || !item.name) return false;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const itemCategory = item.category || "uncategorized";
@@ -165,10 +186,11 @@ export default function InventoryTab() {
                   <TableHead>Current Stock</TableHead>
                   <TableHead>Minimum Stock</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.map((item) => (
+                {filteredItems.map((item: InventoryItem) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>
@@ -193,6 +215,21 @@ export default function InventoryTab() {
                       ) : (
                         <Badge variant="secondary" className="bg-green-100 text-green-800">In Stock</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to remove "${item.name}" from inventory? This action cannot be undone.`)) {
+                            removeItemMutation.mutate(item.id);
+                          }
+                        }}
+                        disabled={removeItemMutation.isPending}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

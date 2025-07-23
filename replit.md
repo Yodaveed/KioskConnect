@@ -221,6 +221,10 @@ Changelog:
 - July 23, 2025. Validated all three ordering flows (/three-step, /single-page, /custom) with premium pricing badges and inventory decrements
 - July 23, 2025. Fixed LSP errors in storage.ts for null handling and missing imageUrl field in menu queries  
 - July 23, 2025. **PRODUCTION READY**: All critical tests passed, zero failed tests, system approved for real-world deployment
+- July 23, 2025. **INVENTORY ENHANCEMENT**: Expanded inventory from 11 to 30 items to include all toppings for comprehensive restaurant operations
+- July 23, 2025. Added inventory removal functionality: Admin can now remove unnecessary items (sizes, addons) via trash button in admin dashboard
+- July 23, 2025. Implemented safe archival system: Items are archived rather than permanently deleted, with full audit trail logging
+- July 23, 2025. Enhanced inventory flexibility: System supports both comprehensive tracking (all ingredients) and selective tracking (user choice)
 ```
 
 ## User Preferences
