@@ -134,7 +134,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(menuItems)
         .where(and(
-          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId)),
+          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId).filter(Boolean)),
           eq(menuItems.isActive, true)
         ));
     }
@@ -158,7 +158,7 @@ export class DatabaseStorage implements IStorage {
         .from(menuItems)
         .where(and(
           eq(menuItems.category, category),
-          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId)),
+          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId).filter(Boolean)),
           eq(menuItems.isActive, true)
         ));
     }
@@ -357,6 +357,7 @@ export class DatabaseStorage implements IStorage {
         id: menus.id,
         name: menus.name,
         description: menus.description,
+        imageUrl: menus.imageUrl,
         isActive: menus.isActive,
         sortOrder: menus.sortOrder,
         orderingFlow: menus.orderingFlow,
