@@ -253,6 +253,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  // GET /api/menu-items/:id/menu-assignments - Get menu assignments for a menu item
+  app.get("/api/menu-items/:id/menu-assignments", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const menus = await storage.getMenuItemMenus(parseInt(req.params.id));
+      const menuIds = menus.map(menu => menu.id);
+      res.json(successResponse({ menuIds, menus }));
+    })
+  );
+
+  // POST /api/menu-items/:id/assign-menus - Assign menu item to multiple menus
+  app.post("/api/menu-items/:id/assign-menus", 
+    validateIdParam,
+    asyncHandler(async (req, res) => {
+      const { menuIds } = req.body;
+      if (!Array.isArray(menuIds)) {
+        return res.status(400).json(errorResponse("menuIds must be an array"));
+      }
+      
+      // Clear existing assignments first, then add new ones
+      const existingMenus = await storage.getMenuItemMenus(parseInt(req.params.id));
+      const existingMenuIds = existingMenus.map(menu => menu.id);
+      
+      if (existingMenuIds.length > 0) {
+        await storage.removeMenuItemFromMenus(parseInt(req.params.id), existingMenuIds);
+      }
+      
+      await storage.assignMenuItemToMenus(parseInt(req.params.id), menuIds);
+      res.json(successResponse(null, "Menu item assigned to menus successfully"));
+    })
+  );
+
   // POST /api/menu-items/:id/menus - Assign menu item to multiple menus
   app.post("/api/menu-items/:id/menus", 
     validateIdParam,
@@ -680,11 +712,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
+      // Filter to only include base and sauce categories for inventory tracking
+      const filteredIngredients = Array.from(ingredientMap.values()).filter(ingredient => 
+        ingredient.category === 'base' || ingredient.category === 'sauce'
+      );
+
       // Clear existing inventory items
       await storage.clearInventory();
       
-      // Insert new inventory items based on actual ingredient names
-      for (const ingredient of ingredientMap.values()) {
+      // Insert new inventory items based on actual ingredient names (base and sauce only)
+      for (const ingredient of filteredIngredients) {
         const { actualName, category } = ingredient;
         
         // Set default quantities based on category
@@ -717,9 +754,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(successResponse({ 
-        ingredientCount: ingredientMap.size,
-        mapping: Array.from(ingredientMap.values())
-      }, `Inventory updated with ${ingredientMap.size} unique ingredients`));
+        ingredientCount: filteredIngredients.length,
+        mapping: filteredIngredients
+      }, `Inventory updated with ${filteredIngredients.length} unique ingredients (base and sauce only)`));
       
     })
   );

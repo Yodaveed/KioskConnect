@@ -30,6 +30,9 @@ export default function Home() {
   const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
   const { cartId, items, isActive, setCartId, addItem } = useCart();
 
+  // Logo state
+  const [logo, setLogo] = useState<string>("");
+
   // QR code and guest info state
   const [qrInfo, setQrInfo] = useState<{ table?: string; location?: string }>({});
   const [showGuestBanner, setShowGuestBanner] = useState(false);
@@ -38,6 +41,18 @@ export default function Home() {
   useEffect(() => {
     // Clear any persistent order state to start fresh
     resetOrder();
+    
+    // Load logo from localStorage
+    const savedLogo = localStorage.getItem('ic_pasta_logo');
+    if (savedLogo) {
+      setLogo(savedLogo);
+    }
+    
+    // Listen for logo updates from admin
+    const handleLogoUpdate = (event: CustomEvent) => {
+      setLogo(event.detail.logoUrl);
+    };
+    window.addEventListener('logoUpdated', handleLogoUpdate as EventListener);
     
     // Check for QR code parameters in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -53,16 +68,20 @@ export default function Home() {
       setQrInfo({ table: tableNumber, location: location || undefined });
       setShowGuestBanner(true);
     }
+
+    return () => {
+      window.removeEventListener('logoUpdated', handleLogoUpdate as EventListener);
+    };
   }, []);
 
   const { data: menus = [], isLoading: menusLoading, error: menusError } = useQuery<Menu[]>({
     queryKey: ["/api/menus"],
   });
 
-  // Sort menus by featured status or popularity
+  // Sort menus by sort order or creation
   const sortedMenus = [...menus].sort((a, b) => {
-    // Featured menus first, then by order of creation
-    return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+    // Sort by sortOrder if available, then by id
+    return (a.sortOrder || a.id) - (b.sortOrder || b.id);
   });
 
   const handleMenuSelect = (menu: Menu) => {
@@ -287,7 +306,19 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <IceCream className="text-3xl" />
+              {logo ? (
+                <img 
+                  src={logo} 
+                  alt="Logo" 
+                  className="h-10 w-auto max-w-40 object-contain"
+                  onError={(e) => {
+                    // Fallback to default icon if logo fails to load
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <IceCream className={`text-3xl ${logo ? 'hidden' : ''}`} />
               <h1 className="text-3xl md:text-4xl font-bold">IC Pasta</h1>
             </div>
             <div className="flex items-center gap-3">

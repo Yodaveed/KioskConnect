@@ -74,13 +74,23 @@ export default function MenuTab() {
   const createMutation = useMutation({
     mutationFn: async (data: MenuItemForm) => {
 
-      return apiRequest("POST", "/api/menu", {
+      const payload = {
         ...data,
         price: Number(data.price),
         sortOrder: 0,
         maxQuantity: null,
         isRequired: false
-      });
+      };
+
+      // Create the menu item first
+      const result = await apiRequest("POST", "/api/menu", payload);
+      
+      // Assign to menus if menuIds are provided
+      if (data.menuIds && data.menuIds.length > 0) {
+        await apiRequest("POST", `/api/menu-items/${result.id}/assign-menus`, { menuIds: data.menuIds });
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -108,13 +118,20 @@ export default function MenuTab() {
       const payload = {
         ...data,
         price: Number(data.price),
-        menuIds: data.menuIds || [],
         sortOrder: 0, // Add required field for backend validation
         maxQuantity: null, // Optional field
         isRequired: false // Optional field
       };
 
-      return apiRequest("PUT", `/api/menu/${id}`, payload);
+      // Update the menu item first
+      const result = await apiRequest("PUT", `/api/menu/${id}`, payload);
+      
+      // Update menu assignments if menuIds are provided
+      if (data.menuIds && data.menuIds.length > 0) {
+        await apiRequest("POST", `/api/menu-items/${id}/assign-menus`, { menuIds: data.menuIds });
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -169,8 +186,8 @@ export default function MenuTab() {
     
     // Get current menu assignments for this item
     try {
-      const assignedMenus = await apiRequest("GET", `/api/menu-items/${item.id}/menus`);
-      const menuIds = assignedMenus.map((menu: Menu) => menu.id);
+      const response = await apiRequest("GET", `/api/menu-items/${item.id}/menu-assignments`);
+      const menuIds = response.menuIds || [];
       
       form.reset({
         name: item.name,
