@@ -7,6 +7,7 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { MobileSafeImage } from "@/components/ui/mobile-safe-image";
 import { useOrder } from "@/hooks/use-order";
 import StepOne from "@/components/ordering/step-one";
 import StepTwo from "@/components/ordering/step-two";
@@ -159,17 +160,12 @@ export default function Home() {
             >
               <CardContent className="p-8 text-center">
                 {/* Show menu image if available, otherwise fallback to icon */}
-                {menu.imageUrl ? (
-                  <img
-                    src={menu.imageUrl}
-                    alt={`${menu.name} preview`}
-                    className="w-20 h-20 mx-auto mb-4 rounded-lg shadow object-cover"
-                  />
-                ) : (
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <IceCream className="w-10 h-10 text-white" aria-hidden="true" />
-                  </div>
-                )}
+                <MobileSafeImage
+                  src={menu.imageUrl}
+                  alt={`${menu.name} preview`}
+                  className="w-20 h-20 mx-auto mb-4 rounded-lg object-cover"
+                  fallbackIcon={<IceCream className="w-10 h-10 text-white" aria-hidden="true" />}
+                />
 
                 <div className="text-2xl font-bold mb-2 text-dark-slate">{menu.name}</div>
                 <div className="text-muted-foreground mb-4 text-sm">{menu.description}</div>

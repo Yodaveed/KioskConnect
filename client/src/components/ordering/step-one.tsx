@@ -3,6 +3,7 @@ import { ArrowRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MobileSafeImage } from "@/components/ui/mobile-safe-image";
 import { useOrder } from "@/hooks/use-order";
 import type { MenuItem, Menu } from "@shared/schema";
 
@@ -105,17 +106,12 @@ export default function StepOne() {
             }}
           >
             <CardContent className="p-6 text-center">
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={`${item.name} ice cream base`}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-md"
-                />
-              ) : (
-                <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-primary/20 rounded-full mx-auto mb-4 flex items-center justify-center shadow-md">
-                  <div className="text-4xl" aria-hidden="true">🍨</div>
-                </div>
-              )}
+              <MobileSafeImage
+                src={item.imageUrl}
+                alt={`${item.name} ice cream base`}
+                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-md"
+                fallbackIcon={<div className="text-4xl" aria-hidden="true">🍨</div>}
+              />
               
               <h3 className="text-xl font-semibold text-dark-slate mb-2">{item.name}</h3>
               <p className="text-gray-600 text-sm mb-4">{item.description}</p>

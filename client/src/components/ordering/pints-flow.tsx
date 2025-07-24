@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MobileSafeImage } from "@/components/ui/mobile-safe-image";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, ShoppingCart, Check, ArrowRight } from "lucide-react";
 import { useOrder } from "@/hooks/use-order";
@@ -227,17 +228,12 @@ export default function PintsFlow() {
           
           return (
             <Card key={pint.id} className="relative">
-              {pint.imageUrl ? (
-                <img
-                  src={pint.imageUrl}
-                  alt={pint.name}
-                  className="w-full h-32 object-cover rounded-t-lg"
-                />
-              ) : (
-                <div className="w-full h-32 bg-gradient-to-br from-primary/10 to-primary/20 rounded-t-lg flex items-center justify-center">
-                  <div className="text-4xl">🍨</div>
-                </div>
-              )}
+              <MobileSafeImage
+                src={pint.imageUrl}
+                alt={pint.name}
+                className="w-full h-32 object-cover rounded-t-lg"
+                fallbackIcon={<div className="text-4xl">🍨</div>}
+              />
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">{pint.name}</CardTitle>
                 {pint.description && (
