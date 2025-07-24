@@ -239,6 +239,9 @@ Changelog:
 - July 24, 2025. **CRITICAL MOBILE FIX**: Resolved image loading compatibility issues between PC and mobile/tablet devices
 - July 24, 2025. Implemented MobileSafeImage component with CORS handling, HTTPS validation, automatic fallbacks, and cross-platform compatibility
 - July 24, 2025. Updated all image-dependent components (home.tsx, step-one.tsx, pints-flow.tsx) to use mobile-safe image loading
+- July 24, 2025. **TABLET COMPATIBILITY FIX**: Resolved Cloudinary admin URL 401 Unauthorized errors preventing tablet image loading
+- July 24, 2025. Implemented automatic URL conversion from admin console URLs to public accessible endpoints with base64 decoding
+- July 24, 2025. Verified all converted Cloudinary URLs return 200 OK status with proper CORS headers for mobile devices
 - July 24, 2025. Added comprehensive mobile image testing framework to validate cross-platform compatibility
 - July 24, 2025. **READY FOR PHASE 3B**: Hardware-in-the-loop testing preparation complete with comprehensive mocked printer pipeline, validated QR flows, and mobile compatibility assured
 ```

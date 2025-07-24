@@ -56,6 +56,33 @@ export function MobileSafeImage({
     }
   }, [onError, retryCount, src]);
 
+  // Convert Cloudinary admin/thumbnail URLs to public URLs
+  const convertToPublicUrl = useCallback((url: string) => {
+    // Handle Cloudinary admin console URLs
+    if (url.includes('/thumbnails/') && url.includes('/preview')) {
+      // Extract the cloud name and public ID from thumbnail URL
+      const match = url.match(/https:\/\/res-console\.cloudinary\.com\/([^\/]+)\/thumbnails\/v1\/image\/upload\/v\d+\/([^\/]+)\/preview/);
+      if (match) {
+        const [, cloudName, publicId] = match;
+        // Decode the base64 public ID
+        try {
+          const decodedId = atob(publicId);
+          return `https://res.cloudinary.com/${cloudName}/image/upload/${decodedId}`;
+        } catch {
+          // If decoding fails, fallback to showing icon
+          return '';
+        }
+      }
+    }
+    
+    // Simple conversion for other console URLs
+    if (url.includes('res-console.cloudinary.com')) {
+      return url.replace('res-console.cloudinary.com', 'res.cloudinary.com');
+    }
+    
+    return url;
+  }, []);
+
   // Check if the image URL is valid and accessible
   const isValidImageUrl = useCallback((url: string) => {
     try {
@@ -70,6 +97,7 @@ export function MobileSafeImage({
               parsedUrl.hostname.includes('googleusercontent.com') ||
               parsedUrl.hostname.includes('github.com') ||
               parsedUrl.hostname.includes('replit.com') ||
+              parsedUrl.hostname.includes('squarespace-cdn.com') ||
               // Allow other common image hosts
               parsedUrl.pathname.match(/\.(jpg|jpeg|png|gif|webp)$/i));
     } catch {
@@ -77,8 +105,11 @@ export function MobileSafeImage({
     }
   }, []);
 
+  // Convert URL to public-accessible version
+  const publicSrc = src ? convertToPublicUrl(src) : null;
+
   // If no src or invalid URL, show fallback immediately
-  if (!src || src.trim() === '' || !isValidImageUrl(src)) {
+  if (!publicSrc || publicSrc.trim() === '' || !isValidImageUrl(publicSrc)) {
     return (
       <div className={cn(
         "flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20 shadow-md",
@@ -114,13 +145,13 @@ export function MobileSafeImage({
   }
 
   // Construct image URL with mobile optimizations
-  const optimizedSrc = src.includes('?') 
-    ? `${src}&format=auto&quality=85&w=400` 
-    : `${src}?format=auto&quality=85&w=400`;
+  const optimizedSrc = publicSrc.includes('?') 
+    ? `${publicSrc}&format=auto&quality=85&w=400` 
+    : `${publicSrc}?format=auto&quality=85&w=400`;
 
   return (
     <img
-      src={retryCount > 0 ? src : optimizedSrc} // Use original URL on retry
+      src={retryCount > 0 ? publicSrc : optimizedSrc} // Use original URL on retry
       alt={alt}
       className={cn("shadow-md", className)}
       onLoad={handleImageLoad}
