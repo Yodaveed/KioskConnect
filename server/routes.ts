@@ -27,6 +27,7 @@ import {
   orderRateLimit
 } from "./middleware";
 import { printerService } from "./printer";
+import { mockedPrinterService } from "./mocked-printer";
 import { qrCodeService } from "./qr-generator";
 import { setupSecureAuth, authenticateAdmin, generateToken, verifyPassword, hashPassword, type AuthenticatedRequest } from "./auth";
 import express from 'express';
@@ -428,7 +429,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: qrLocation
       };
       
-      const printSuccess = await printerService.printReceipt(printData);
+      // Use mocked printer for Phase 3A testing
+      const printSuccess = process.env.NODE_ENV === 'test' 
+        ? await mockedPrinterService.printReceipt(printData)
+        : await printerService.printReceipt(printData);
       if (!printSuccess) {
         console.warn(`Auto-print failed for order ${order.orderNumber} - receipt can be reprinted by admin`);
       } else {
@@ -592,7 +596,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location
       };
       
-      const printSuccess = await printerService.printReceipt(printData);
+      // Use mocked printer for Phase 3A testing
+      const printSuccess = process.env.NODE_ENV === 'test'
+        ? await mockedPrinterService.printReceipt(printData)
+        : await printerService.printReceipt(printData);
       
       if (printSuccess) {
         res.json(successResponse(null, "Receipt printed successfully"));
