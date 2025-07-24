@@ -444,16 +444,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PUT /api/orders/:id/status - Update order status
   app.put("/api/orders/:id/status", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       const { status } = req.body;
       
-      if (!status || !["pending", "preparing", "completed", "cancelled"].includes(status)) {
-        return res.status(400).json(errorResponse("Invalid status"));
+      // Allow both "fulfilled" and "completed" status for admin dashboard compatibility
+      const validStatuses = ["pending", "preparing", "completed", "cancelled", "fulfilled"];
+      
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(400).json(errorResponse(`Invalid status. Must be one of: ${validStatuses.join(', ')}`));
       }
       
-      const order = await storage.updateOrderStatus(parseInt(req.params.id), status);
+      // Map "fulfilled" to "completed" for database consistency
+      const dbStatus = status === "fulfilled" ? "completed" : status;
+      
+      const order = await storage.updateOrderStatus(parseInt(req.params.id), dbStatus);
       res.json(successResponse(order, "Order status updated successfully"));
+    })
+  );
+
+  // POST /api/orders/manual - Create manual order entry (admin dashboard)
+  app.post("/api/orders/manual", 
+    authenticateAdmin,
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
+      const { customerName, items, totalAmount, source } = req.body;
+      
+      // Validate required fields
+      if (!customerName?.trim()) {
+        return res.status(400).json(errorResponse("Customer name is required"));
+      }
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json(errorResponse("At least one item is required"));
+      }
+      
+      if (typeof totalAmount !== 'number' || totalAmount <= 0) {
+        return res.status(400).json(errorResponse("Valid total amount is required"));
+      }
+      
+      // Create order data
+      const orderData = {
+        orderNumber: storage.generateOrderNumber(),
+        customerName: customerName.trim(),
+        status: "completed" as const,
+        totalAmount: totalAmount.toString(),
+        items: items,
+        manualEntry: true,
+      };
+      
+      try {
+        const validatedData = enhancedInsertOrderSchema.parse(orderData);
+        const order = await storage.createOrder(validatedData);
+        
+        // Audit log for manual orders
+        console.log(`Manual order created: ${order.orderNumber} for ${order.customerName} - Total: $${order.totalAmount} by admin at ${new Date().toISOString()}`);
+        
+        res.status(201).json(successResponse(order, "Manual order created successfully"));
+      } catch (error) {
+        console.error('Manual order creation failed:', error);
+        res.status(400).json(errorResponse("Invalid order data format"));
+      }
     })
   );
 

@@ -252,6 +252,29 @@ export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
 export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
 
 // Enhanced validation schemas with comprehensive security validation
+
+// Enhanced order schema for flexible order creation
+export const enhancedInsertOrderSchema = z.object({
+  orderNumber: z.string().min(1, "Order number required"),
+  customerName: z.string().min(1, "Customer name required").max(100, "Customer name too long"),
+  status: z.enum(["pending", "preparing", "completed", "cancelled"]).default("pending"),
+  totalAmount: z.union([z.number(), z.string()]).transform(val => 
+    typeof val === "string" ? val : val.toString()
+  ),
+  items: z.union([
+    z.record(z.any()), // JSON object for backward compatibility
+    z.array(z.object({
+      id: z.number().optional(),
+      name: z.string(),
+      price: z.union([z.number(), z.string()]),
+      quantity: z.number().int().positive(),
+      category: z.string().optional(),
+      modifiers: z.array(z.any()).optional()
+    }))
+  ]).default({}),
+  manualEntry: z.boolean().optional(),
+});
+
 export const enhancedInsertMenuSchema = insertMenuSchema.extend({
   name: z.string().min(1, "Menu name is required").max(100, "Menu name too long"),
   description: z.string().optional(),
@@ -298,19 +321,7 @@ export const enhancedInsertMenuItemSchema = insertMenuItemSchema.extend({
   sortOrder: z.number().int().min(0).default(0),
 });
 
-export const enhancedInsertOrderSchema = insertOrderSchema.extend({
-  orderNumber: z.string().min(1, "Order number is required"),
-  customerName: z.string().min(1, "Customer name is required").max(100, "Name too long"),
-  items: z.array(z.object({
-    id: z.number().int().positive(),
-    name: z.string().min(1),
-    price: z.string().regex(/^\d+\.\d{2}$/),
-    quantity: z.number().int().min(1).max(50)
-  })).min(1, "At least one item required"),
-  totalAmount: z.string().regex(/^\d+\.\d{2}$/, "Total must be in format X.XX"),
-  status: z.enum(["pending", "preparing", "completed", "cancelled"]).default("pending"),
-  manualEntry: z.boolean().optional(),
-});
+// Remove duplicate enhanced order schema since we created a better one above
 
 // Enhanced inventory validation schemas
 export const enhancedInsertInventoryItemSchema = insertInventoryItemSchema.extend({
