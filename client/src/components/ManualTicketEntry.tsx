@@ -35,14 +35,15 @@ export default function ManualTicketEntry() {
   const queryClient = useQueryClient();
   
   // Fetch inventory data
-  const { data: inventoryData, isLoading } = useQuery({
+  const { data: inventoryData, isLoading } = useQuery<InventoryItem[] | { inventory?: InventoryItem[] }>({
     queryKey: ["/api/inventory"],
   });
 
   // Initialize tally entries when inventory data loads
   useEffect(() => {
-    if (inventoryData?.inventory && tallyEntries.length === 0) {
-      const entries: TallyEntry[] = inventoryData.inventory.map((item: InventoryItem) => ({
+    const inventoryItems = Array.isArray(inventoryData) ? inventoryData : inventoryData?.inventory;
+    if (inventoryItems && tallyEntries.length === 0) {
+      const entries: TallyEntry[] = inventoryItems.map((item: InventoryItem) => ({
         inventoryItemId: item.id,
         inventoryName: item.name,
         currentQuantity: item.quantity,

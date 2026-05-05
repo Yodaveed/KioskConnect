@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, ArrowRight, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
+import { useOrder } from '@/hooks/use-order';
 import type { Menu } from '@shared/schema';
 
 interface OrderWrapperProps {
@@ -16,11 +17,13 @@ interface OrderWrapperProps {
 export default function OrderWrapper({ menu, children, onAddToCart }: OrderWrapperProps) {
   const [customerName, setCustomerName] = useState('');
   const [hasEnteredName, setHasEnteredName] = useState(false);
-  const { isActive, addItem } = useCart();
+  const { isActive } = useCart();
+  const { setCustomerName: saveCustomerName } = useOrder();
 
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (customerName.trim()) {
+      saveCustomerName(customerName.trim());
       setHasEnteredName(true);
     }
   };

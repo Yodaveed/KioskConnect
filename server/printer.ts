@@ -114,127 +114,128 @@ export class SecurePrinterService {
   }
 
   private formatThermalReceipt(orderData: PrintOrderData, isReprint: boolean = false) {
-    if (!this.printer) return;
+    const printer = this.printer;
+    if (!printer) return;
 
     // Header
-    this.printer.alignCenter();
-    this.printer.setTextSize(1, 1);
-    this.printer.bold(true);
-    this.printer.println('IC PASTA');
-    this.printer.bold(false);
-    this.printer.setTextSize(0, 0);
-    this.printer.println('Fresh & Delicious');
-    this.printer.drawLine();
-    this.printer.newLine();
+    printer.alignCenter();
+    printer.setTextSize(1, 1);
+    printer.bold(true);
+    printer.println('IC PASTA');
+    printer.bold(false);
+    printer.setTextSize(0, 0);
+    printer.println('Fresh & Delicious');
+    printer.drawLine();
+    printer.newLine();
 
     // Reprint indicator
     if (isReprint) {
-      this.printer.alignCenter();
-      this.printer.bold(true);
-      this.printer.println('*** REPRINT ***');
-      this.printer.bold(false);
-      this.printer.newLine();
+      printer.alignCenter();
+      printer.bold(true);
+      printer.println('*** REPRINT ***');
+      printer.bold(false);
+      printer.newLine();
     }
 
     // Order Information
-    this.printer.alignLeft();
-    this.printer.bold(true);
-    this.printer.println(`Order #: ${orderData.orderNumber}`);
-    this.printer.bold(false);
-    this.printer.println(`Menu: ${orderData.menuType}`);
-    this.printer.println(`Time: ${new Date(orderData.timestamp).toLocaleString()}`);
+    printer.alignLeft();
+    printer.bold(true);
+    printer.println(`Order #: ${orderData.orderNumber}`);
+    printer.bold(false);
+    printer.println(`Menu: ${orderData.menuType}`);
+    printer.println(`Time: ${new Date(orderData.timestamp).toLocaleString()}`);
     
     if (orderData.customerName) {
-      this.printer.println(`Customer: ${orderData.customerName}`);
+      printer.println(`Customer: ${orderData.customerName}`);
     }
     
     if (orderData.cartId) {
-      this.printer.println(`Group Cart: ${orderData.cartId}`);
+      printer.println(`Group Cart: ${orderData.cartId}`);
     }
 
     if (orderData.tableNumber) {
-      this.printer.println(`Table: ${orderData.tableNumber}`);
+      printer.println(`Table: ${orderData.tableNumber}`);
     }
 
     if (orderData.location) {
-      this.printer.println(`Location: ${orderData.location}`);
+      printer.println(`Location: ${orderData.location}`);
     }
     
-    this.printer.drawLine();
-    this.printer.newLine();
+    printer.drawLine();
+    printer.newLine();
 
     // Order Items
     if (orderData.items.base) {
-      this.printer.bold(true);
-      this.printer.println('BASE:');
-      this.printer.bold(false);
-      this.printer.println(`  ${orderData.items.base.name}`);
-      this.printer.tableCustom([
+      printer.bold(true);
+      printer.println('BASE:');
+      printer.bold(false);
+      printer.println(`  ${orderData.items.base.name}`);
+      printer.tableCustom([
         { text: '', align: 'LEFT', width: 0.7 },
         { text: `$${orderData.items.base.price.toFixed(2)}`, align: 'RIGHT', width: 0.3 }
       ]);
-      this.printer.newLine();
+      printer.newLine();
     }
 
     if (orderData.items.sauces && orderData.items.sauces.length > 0) {
-      this.printer.bold(true);
-      this.printer.println('SAUCES:');
-      this.printer.bold(false);
+      printer.bold(true);
+      printer.println('SAUCES:');
+      printer.bold(false);
       orderData.items.sauces.forEach(sauce => {
-        this.printer.println(`  ${sauce.name}`);
-        this.printer.tableCustom([
+        printer.println(`  ${sauce.name}`);
+        printer.tableCustom([
           { text: '', align: 'LEFT', width: 0.7 },
           { text: sauce.price > 0 ? `$${sauce.price.toFixed(2)}` : 'Included', align: 'RIGHT', width: 0.3 }
         ]);
       });
-      this.printer.newLine();
+      printer.newLine();
     }
 
     if (orderData.items.toppings && orderData.items.toppings.length > 0) {
-      this.printer.bold(true);
-      this.printer.println('TOPPINGS:');
-      this.printer.bold(false);
+      printer.bold(true);
+      printer.println('TOPPINGS:');
+      printer.bold(false);
       orderData.items.toppings.forEach(topping => {
-        this.printer.println(`  ${topping.name}`);
-        this.printer.tableCustom([
+        printer.println(`  ${topping.name}`);
+        printer.tableCustom([
           { text: '', align: 'LEFT', width: 0.7 },
           { text: topping.price > 0 ? `$${topping.price.toFixed(2)}` : 'Included', align: 'RIGHT', width: 0.3 }
         ]);
       });
-      this.printer.newLine();
+      printer.newLine();
     }
 
     // Handle complex order data (Pints, Freeze Sticks, etc.)
     if (orderData.items.orderData) {
-      this.printer.bold(true);
-      this.printer.println('ORDER DETAILS:');
-      this.printer.bold(false);
-      this.printer.println(JSON.stringify(orderData.items.orderData, null, 2));
-      this.printer.newLine();
+      printer.bold(true);
+      printer.println('ORDER DETAILS:');
+      printer.bold(false);
+      printer.println(JSON.stringify(orderData.items.orderData, null, 2));
+      printer.newLine();
     }
 
     // Total
-    this.printer.drawLine();
-    this.printer.bold(true);
-    this.printer.setTextSize(1, 1);
-    this.printer.tableCustom([
+    printer.drawLine();
+    printer.bold(true);
+    printer.setTextSize(1, 1);
+    printer.tableCustom([
       { text: 'TOTAL:', align: 'LEFT', width: 0.6 },
       { text: `$${orderData.totalAmount}`, align: 'RIGHT', width: 0.4 }
     ]);
-    this.printer.setTextSize(0, 0);
-    this.printer.bold(false);
-    this.printer.newLine();
+    printer.setTextSize(0, 0);
+    printer.bold(false);
+    printer.newLine();
 
     // Footer
-    this.printer.alignCenter();
-    this.printer.println('Thank you for your order!');
-    this.printer.println('Please show this receipt');
-    this.printer.println('when picking up your order');
-    this.printer.newLine();
-    this.printer.newLine();
+    printer.alignCenter();
+    printer.println('Thank you for your order!');
+    printer.println('Please show this receipt');
+    printer.println('when picking up your order');
+    printer.newLine();
+    printer.newLine();
 
     // Cut the paper
-    this.printer.cut();
+    printer.cut();
   }
 
   // SECURITY: Only admin can reprint orders

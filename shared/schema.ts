@@ -258,9 +258,12 @@ export const enhancedInsertOrderSchema = z.object({
   orderNumber: z.string().min(1, "Order number required"),
   customerName: z.string().min(1, "Customer name required").max(100, "Customer name too long"),
   status: z.enum(["pending", "preparing", "completed", "cancelled"]).default("pending"),
-  totalAmount: z.union([z.number(), z.string()]).transform(val => 
-    typeof val === "string" ? val : val.toString()
-  ),
+  totalAmount: z.union([z.number(), z.string()])
+    .transform(val => typeof val === "string" ? val : val.toString())
+    .refine((val) => {
+      const amount = Number(val);
+      return Number.isFinite(amount) && amount > 0;
+    }, "Total amount must be greater than zero"),
   items: z.union([
     z.record(z.any()), // JSON object for backward compatibility
     z.array(z.object({
@@ -271,7 +274,21 @@ export const enhancedInsertOrderSchema = z.object({
       category: z.string().optional(),
       modifiers: z.array(z.any()).optional()
     }))
-  ]).default({}),
+  ]).refine((items) => {
+    if (Array.isArray(items)) {
+      return items.length > 0;
+    }
+
+    if (!items || typeof items !== "object") {
+      return false;
+    }
+
+    if (Array.isArray((items as { items?: unknown }).items)) {
+      return ((items as { items: unknown[] }).items).length > 0;
+    }
+
+    return Object.keys(items).length > 0;
+  }, "At least one order item is required"),
   manualEntry: z.boolean().optional(),
 });
 

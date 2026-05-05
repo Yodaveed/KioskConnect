@@ -7,9 +7,10 @@ import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { debounce } from "@/lib/debounce";
+import { requireCustomerName } from "@/lib/order-payload";
 
 export default function OrderConfirmation() {
-  const { orderNumber, resetOrder } = useOrder();
+  const { order, orderNumber, resetOrder } = useOrder();
   const { cartId, isActive, setCartId, addItem } = useCart();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
@@ -52,13 +53,21 @@ export default function OrderConfirmation() {
 
   const handleAddToThisOrder = () => {
     if (!isActive) {
+      let customerName: string;
+      try {
+        customerName = requireCustomerName(order.customerName);
+      } catch (error) {
+        toast({
+          title: "Customer Name Required",
+          description: error instanceof Error ? error.message : "Please enter a customer name before adding to a group order.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create a new cart
       const newCartId = generateFriendlyCartId();
       setCartId(newCartId);
-      
-      // Add the current completed order to the cart
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
       // Get the order from localStorage (stored during order completion)
       const storedOrder = localStorage.getItem('currentOrder');

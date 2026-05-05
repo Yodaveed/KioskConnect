@@ -4,28 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MobileSafeImage } from "@/components/ui/mobile-safe-image";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder } from "@/hooks/use-order";
 import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepOne() {
   const { selectBase, setStep, order, selectedMenuId } = useOrder();
 
-  const { data: baseItems = [], isLoading } = useQuery({
+  const { data: baseItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
-  const { data: currentMenu } = useQuery({
+  const { data: menus = [] } = useQuery<Menu[]>({
     queryKey: ['/api/menus'],
-    select: (menus: Menu[]) => menus.find(menu => menu.id === selectedMenuId),
   });
+  const currentMenu = menus.find(menu => menu.id === selectedMenuId);
 
   const getPricingRules = () => {
     return currentMenu?.pricingRules || {};
   };
 
   const getBasePrice = (item: MenuItem, selectedCount: number) => {
-    const rules = getPricingRules();
+    const rules = getPricingRules() as any;
     const baseRules = rules.base || { freeLimit: 1, additionalPrice: 1.00 };
     
     const basePrice = parseFloat(item.price.toString());
@@ -50,7 +50,7 @@ export default function StepOne() {
 
   const handleContinue = () => {
     if (order.base) {
-      setStep(2);
+      setStep(ORDER_STEPS.SAUCE);
     }
   };
 
@@ -87,7 +87,7 @@ export default function StepOne() {
             role="button"
             aria-label={`${item.name} base flavor, $${parseFloat(item.price).toFixed(2)}${item.isSoldOut ? ' - sold out' : ''}${order.base?.id === item.id ? ' - selected' : ''}`}
             aria-pressed={order.base?.id === item.id}
-            aria-disabled={item.isSoldOut}
+            aria-disabled={!!item.isSoldOut}
             className={`transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
               item.isSoldOut
                 ? "opacity-50 cursor-not-allowed"

@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IceCream, Settings, ArrowRight, ShoppingCart, Users } from "lucide-react";
-
-
-import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { IceCream, Settings, ArrowRight, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MobileSafeImage } from "@/components/ui/mobile-safe-image";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder, type OrderStep } from "@/hooks/use-order";
 import StepOne from "@/components/ordering/step-one";
 import StepTwo from "@/components/ordering/step-two";
 import StepThree from "@/components/ordering/step-three";
@@ -20,16 +17,14 @@ import CartViewer from "@/components/cart/cart-viewer";
 import OrderWrapper from "@/components/ordering/order-wrapper";
 import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
-import type { Menu, Cart } from "@shared/schema";
+import type { Menu } from "@shared/schema";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
   const [showCartDialog, setShowCartDialog] = useState(false);
-  const [showCartViewer, setShowCartViewer] = useState(false);
-  const [customerName, setCustomerName] = useState<string>('');
-  const { currentStep, order, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
-  const { cartId, items, isActive, setCartId, addItem } = useCart();
+  const { currentStep, totalPrice, resetOrder, setSelectedMenuId, setStep } = useOrder();
+  const { cartId, items, isActive } = useCart();
 
   // Logo state
   const [logo, setLogo] = useState<string>("");
@@ -92,13 +87,13 @@ export default function Home() {
     // Route to appropriate flow based on menu type
     switch (menu.orderingFlow) {
       case "single-page":
-        setStep(5); // Single page flow
+        setStep(ORDER_STEPS.PINTS); // Single page flow
         break;
       case "custom":
-        setStep(6); // Custom flow (freeze sticks, etc.)
+        setStep(ORDER_STEPS.FREEZE_STICKS); // Custom flow (freeze sticks, etc.)
         break;
       default:
-        setStep(1); // Traditional 3-step flow
+        setStep(ORDER_STEPS.BASE); // Traditional 3-step flow
     }
   };
 
@@ -135,13 +130,6 @@ export default function Home() {
           <p className="text-gray-600 text-xl">Select from our delicious menu options</p>
         </div>
 
-        {/* --- FIX FOR ACCESSIBILITY & IMAGE SUPPORT IN MENU CARDS --- */}
-        {/* 1. Card is keyboard-accessible and selectable by Enter/Space. */}
-        {/* 2. Card uses aria-label for screen readers. */}
-        {/* 3. Menu images are shown if present, with alt text for accessibility. */}
-        {/* 4. Fallback to IceCream icon if no image exists. */}
-        {/* 5. Button uses clear aria-label for screen readers. */}
-        {/* 6. Card and button use clear focus and hover styles for kiosk UX. */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" role="group" aria-label="Menu selection">
           {sortedMenus.map((menu: Menu) => (
             <Card
@@ -186,23 +174,39 @@ export default function Home() {
     );
   };
 
+  const traditionalSteps: { step: OrderStep; number: number; label: string }[] = [
+    { step: ORDER_STEPS.BASE, number: 1, label: "Base" },
+    { step: ORDER_STEPS.SAUCE, number: 2, label: "Sauce" },
+    { step: ORDER_STEPS.TOPPINGS, number: 3, label: "Toppings" },
+  ];
+
+  const getTraditionalStepIndex = (step: OrderStep) => {
+    const index = traditionalSteps.findIndex((item) => item.step === step);
+    return index === -1 ? traditionalSteps.length : index;
+  };
+
+  const traditionalFlowSteps: OrderStep[] = [
+    ORDER_STEPS.BASE,
+    ORDER_STEPS.SAUCE,
+    ORDER_STEPS.TOPPINGS,
+    ORDER_STEPS.REVIEW,
+  ];
+  const isTraditionalFlowStep = traditionalFlowSteps.includes(currentStep);
+
   const renderProgressBar = () => {
-    const steps = [
-      { number: 1, label: "Base", completed: currentStep > 1 },
-      { number: 2, label: "Sauce", completed: currentStep > 2 },
-      { number: 3, label: "Toppings", completed: currentStep > 3 },
-    ];
+    const currentIndex = getTraditionalStepIndex(currentStep);
+    const ariaValue = Math.min(currentIndex + 1, traditionalSteps.length);
 
     return (
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={3} aria-label="Order progress">
+            <div className="flex items-center space-x-8" role="progressbar" aria-valuenow={ariaValue} aria-valuemin={1} aria-valuemax={traditionalSteps.length} aria-label="Order progress">
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setStep(0)}
+                  onClick={() => setStep(ORDER_STEPS.MENU)}
                   className="text-xs"
                 >
                   ← Change Menu
@@ -214,39 +218,44 @@ export default function Home() {
                 )}
               </div>
               <div className="flex items-center space-x-8">
-                {steps.map((step, index) => (
-                  <div key={step.number} className="flex items-center">
-                    <div className="flex items-center space-x-2">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                          currentStep >= step.number
-                            ? "bg-primary text-white"
-                            : "bg-gray-300 text-gray-600"
-                        }`}
-                      >
-                        {step.number}
-                      </div>
-                      <span
-                        className={`font-medium ${
-                          currentStep >= step.number
-                            ? "text-primary"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                    {index < steps.length - 1 && (
-                      <div className="w-16 h-1 bg-gray-200 rounded ml-8">
+                {traditionalSteps.map((step, index) => {
+                  const isActiveOrComplete = currentIndex >= index;
+                  const isComplete = currentIndex > index;
+
+                  return (
+                    <div key={step.step} className="flex items-center">
+                      <div className="flex items-center space-x-2">
                         <div
-                          className={`h-1 rounded transition-all duration-300 ${
-                            currentStep > step.number ? "w-full bg-primary" : "w-0"
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                            isActiveOrComplete
+                              ? "bg-primary text-white"
+                              : "bg-gray-300 text-gray-600"
                           }`}
-                        />
+                        >
+                          {step.number}
+                        </div>
+                        <span
+                          className={`font-medium ${
+                            isActiveOrComplete
+                              ? "text-primary"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {index < traditionalSteps.length - 1 && (
+                        <div className="w-16 h-1 bg-gray-200 rounded ml-8">
+                          <div
+                            className={`h-1 rounded transition-all duration-300 ${
+                              isComplete ? "w-full bg-primary" : "w-0"
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="text-right">
@@ -260,7 +269,7 @@ export default function Home() {
   };
 
   const renderStep = () => {
-    if (currentStep === 0) {
+    if (currentStep === ORDER_STEPS.MENU) {
       return renderMenuSelection();
     }
 
@@ -271,18 +280,20 @@ export default function Home() {
     // Wrap all ordering flows with name collection
     const orderingFlow = () => {
       switch (currentStep) {
-        case 1:
+        case ORDER_STEPS.BASE:
           return <StepOne />;
-        case 2:
+        case ORDER_STEPS.SAUCE:
           return <StepTwo />;
-        case 3:
+        case ORDER_STEPS.TOPPINGS:
           return <StepThree />;
-        case 4:
+        case ORDER_STEPS.REVIEW:
           return <OrderSummary />;
-        case 5:
+        case ORDER_STEPS.PINTS:
           return <PintsFlow />; // Single page flow
-        case 6:
+        case ORDER_STEPS.FREEZE_STICKS:
           return <FreezeSticksFlow />; // Custom flow
+        case ORDER_STEPS.CONFIRMATION:
+          return <OrderConfirmation />;
         default:
           return <StepOne />;
       }
@@ -349,10 +360,10 @@ export default function Home() {
       </header>
 
       {/* Progress Bar */}
-      {currentStep > 0 && currentStep < 5 && renderProgressBar()}
+      {isTraditionalFlowStep && renderProgressBar()}
       
       {/* Home Button for non-traditional flows */}
-      {currentStep >= 5 && (
+      {([ORDER_STEPS.PINTS, ORDER_STEPS.FREEZE_STICKS] as OrderStep[]).includes(currentStep) && (
         <div className="bg-white shadow-sm">
           <div className="max-w-6xl mx-auto px-4 py-4">
             <Button

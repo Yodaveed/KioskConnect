@@ -15,7 +15,7 @@ export default function OrdersTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const { data: orders = [], isLoading, refetch } = useQuery({
+  const { data: orders = [], isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
@@ -45,9 +45,7 @@ export default function OrdersTab() {
     mutationFn: async (orderId: number) => {
       const token = localStorage.getItem('ic_pasta_admin_token');
       return await apiRequest("POST", `/api/print/reprint/${orderId}`, {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        Authorization: `Bearer ${token}`
       });
     },
     onSuccess: (data) => {
@@ -116,7 +114,8 @@ export default function OrdersTab() {
     return parts.length > 0 ? parts.join(" + ") : "Custom order";
   };
 
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | Date | null) => {
+    if (!dateString) return "Unknown";
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));

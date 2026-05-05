@@ -5,16 +5,11 @@ import {
   enhancedInsertMenuItemSchema, 
   enhancedInsertOrderSchema, 
   enhancedInsertMenuSchema, 
-  enhancedInsertCartSchema,
-  loginSchema,
-  idParamSchema,
-  menuQuerySchema,
-  categoryQuerySchema,
   enhancedInsertInventoryItemSchema,
   enhancedInventoryAdjustmentSchema,
-  manualTicketSchema
+  enhancedInsertCartSchema,
+  manualTicketSchema,
 } from "@shared/schema";
-import { z } from "zod";
 import { 
   asyncHandler, 
   validateBody, 
@@ -29,8 +24,7 @@ import {
 import { printerService } from "./printer";
 import { mockedPrinterService } from "./mocked-printer";
 import { qrCodeService } from "./qr-generator";
-import { setupSecureAuth, authenticateAdmin, generateToken, verifyPassword, hashPassword, type AuthenticatedRequest } from "./auth";
-import express from 'express';
+import { setupSecureAuth, authenticateAdmin, generateToken, verifyPassword, type AuthenticatedRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== SECURITY SETUP ====================
@@ -111,19 +105,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let menuItemData = req.body;
       
       // Extract menu IDs (for multi-menu assignment)
-      let menuIds = [];
+      let menuIds: number[] = [];
       if (menuItemData.menuId) {
         if (typeof menuItemData.menuId === 'string') {
           menuIds = [parseInt(menuItemData.menuId)];
         } else if (Array.isArray(menuItemData.menuId)) {
-          menuIds = menuItemData.menuId.map(id => parseInt(id));
+          menuIds = menuItemData.menuId.map((id: string | number) => parseInt(String(id)));
         }
       }
       if (menuItemData.menuIds) {
         if (typeof menuItemData.menuIds === 'string') {
           menuIds = JSON.parse(menuItemData.menuIds);
         } else if (Array.isArray(menuItemData.menuIds)) {
-          menuIds = menuItemData.menuIds;
+          menuIds = menuItemData.menuIds.map((id: string | number) => Number(id));
         }
       }
       
@@ -150,7 +144,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use enhanced validation schema with comprehensive security checks
       const validatedData = enhancedInsertMenuItemSchema.parse(menuItemData);
-      const menuItem = await storage.createMenuItem(validatedData, menuIds);
+      const storageData = { ...validatedData, price: validatedData.price.toString() };
+      const menuItem = await storage.createMenuItem(storageData, menuIds);
       
       // Audit log for security compliance
       console.log(`Menu item created: ${menuItem.name} (ID: ${menuItem.id}) by admin at ${new Date().toISOString()}`);
@@ -168,12 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let updateData = req.body;
       
       // Extract menu IDs for assignment
-      let menuIds = [];
+      let menuIds: number[] = [];
       if (updateData.menuIds) {
         if (typeof updateData.menuIds === 'string') {
           menuIds = JSON.parse(updateData.menuIds);
         } else if (Array.isArray(updateData.menuIds)) {
-          menuIds = updateData.menuIds;
+          menuIds = updateData.menuIds.map((id: string | number) => Number(id));
         }
       }
       
@@ -206,10 +201,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Attempting validation with updateData:", JSON.stringify(updateData, null, 2));
         const validatedData = enhancedInsertMenuItemSchema.partial().parse(updateData);
+        const storageData = {
+          ...validatedData,
+          ...(validatedData.price !== undefined ? { price: validatedData.price.toString() } : {}),
+        };
         console.log("Validation successful, calling storage.updateMenuItem");
-        const menuItem = await storage.updateMenuItem(parseInt(req.params.id), validatedData, menuIds.length > 0 ? menuIds : undefined);
+        const menuItem = await storage.updateMenuItem(parseInt(req.params.id), storageData as any, menuIds.length > 0 ? menuIds : undefined);
         res.json(successResponse(menuItem, "Menu item updated successfully"));
-      } catch (validationError) {
+      } catch (validationError: any) {
         console.error("=== MENU ITEM VALIDATION ERROR ===");
         console.error("Error object:", validationError);
         console.error("Update data received:", JSON.stringify(updateData, null, 2));
@@ -266,6 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menu-items/:id/assign-menus - Assign menu item to multiple menus
   app.post("/api/menu-items/:id/assign-menus", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       const { menuIds } = req.body;
@@ -288,6 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menu-items/:id/menus - Assign menu item to multiple menus
   app.post("/api/menu-items/:id/menus", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       const { menuIds } = req.body;
@@ -302,6 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // DELETE /api/menu-items/:id/menus - Remove menu item from multiple menus
   app.delete("/api/menu-items/:id/menus", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       const { menuIds } = req.body;
@@ -333,9 +335,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/menu-items - Create new menu item with enhanced validation
   app.post("/api/menu-items", 
+    authenticateAdmin,
     validateBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
-      const menuItem = await storage.createMenuItem(req.body, []); // Empty array for backward compatibility
+      const validatedData = enhancedInsertMenuItemSchema.parse(req.body);
+      const menuItem = await storage.createMenuItem({ ...validatedData, price: validatedData.price.toString() }, []); // Empty array for backward compatibility
       
       // Audit log for security compliance
       console.log(`Menu item created via API: ${menuItem.name} (ID: ${menuItem.id}) at ${new Date().toISOString()}`);
@@ -346,10 +350,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PUT /api/menu-items/:id - Update menu item with enhanced validation
   app.put("/api/menu-items/:id", 
+    authenticateAdmin,
     validateIdParam,
     validatePartialBody(enhancedInsertMenuItemSchema),
     asyncHandler(async (req, res) => {
-      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), req.body);
+      const validatedData = enhancedInsertMenuItemSchema.partial().parse(req.body);
+      const storageData = {
+        ...validatedData,
+        ...(validatedData.price !== undefined ? { price: validatedData.price.toString() } : {}),
+      };
+      const menuItem = await storage.updateMenuItem(parseInt(req.params.id), storageData as any);
       
       // Audit log for security compliance
       console.log(`Menu item updated via API: ${menuItem.name} (ID: ${menuItem.id}) at ${new Date().toISOString()}`);
@@ -360,6 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // DELETE /api/menu-items/:id - Delete menu item
   app.delete("/api/menu-items/:id", 
+    authenticateAdmin,
     validateIdParam,
     asyncHandler(async (req, res) => {
       await storage.deleteMenuItem(parseInt(req.params.id));
@@ -419,11 +430,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const printData = {
         orderNumber: order.orderNumber,
-        customerName: order.customerName,
+        customerName: order.customerName || "Guest",
         menuType: req.body.menuType || "Ice Cream",
         items: order.items || {},
         totalAmount: order.totalAmount,
-        timestamp: order.createdAt || new Date().toISOString(),
+        timestamp: (order.createdAt || new Date()).toISOString(),
         cartId: req.body.cartId,
         tableNumber: qrTable,
         location: qrLocation
@@ -483,7 +494,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json(errorResponse("At least one item is required"));
       }
       
-      if (typeof totalAmount !== 'number' || totalAmount <= 0) {
+      const parsedTotalAmount = Number(totalAmount);
+      if (!Number.isFinite(parsedTotalAmount) || parsedTotalAmount <= 0) {
         return res.status(400).json(errorResponse("Valid total amount is required"));
       }
       
@@ -492,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderNumber: storage.generateOrderNumber(),
         customerName: customerName.trim(),
         status: "completed" as const,
-        totalAmount: totalAmount.toString(),
+        totalAmount: parsedTotalAmount.toString(),
         items: items,
         manualEntry: true,
       };
@@ -554,14 +566,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const printData = {
         orderNumber: order.orderNumber,
-        customerName: order.customerName,
+        customerName: order.customerName || "Guest",
         menuType: req.body.menuType || "Ice Cream",
         items: order.items || {},
         totalAmount: order.totalAmount,
-        timestamp: order.createdAt || new Date().toISOString(),
-        cartId: order.cartId,
-        tableNumber: order.tableNumber,
-        location: order.location
+        timestamp: (order.createdAt || new Date()).toISOString(),
+        cartId: req.body.cartId,
+        tableNumber: req.body.tableNumber,
+        location: req.body.location
       };
 
       const printSuccess = await printerService.reprintOrder(printData);
@@ -803,7 +815,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         await storage.createInventoryItem({
           name: actualName,
-          category,
           quantity,
           unit,
           parLevel,
@@ -875,7 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/inventory-adjustments - Batch inventory adjustments for tally
   app.post("/api/inventory-adjustments", 
     authenticateAdmin,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
       const { adjustments } = req.body;
       
       if (!adjustments || !Array.isArray(adjustments)) {
