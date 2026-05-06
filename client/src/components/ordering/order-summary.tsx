@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { debounce } from "@/lib/debounce";
+import { buildOrderPayload, requireCustomerName } from "@/lib/order-payload";
 
 export default function OrderSummary() {
   const { order, totalPrice, setStep, setOrderNumber, selectedMenuId, resetOrder } = useOrder();
@@ -31,14 +32,21 @@ export default function OrderSummary() {
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
-      const orderData = {
-        totalAmount: totalPrice.toFixed(2),
+      if (!order.base) {
+        throw new Error("Please select a base before placing the order.");
+      }
+
+      const orderData = buildOrderPayload({
+        customerName: order.customerName,
+        totalAmount: totalPrice,
         items: {
           base: order.base,
           sauces: order.sauces,
           toppings: order.toppings,
         },
-      };
+        menuType: getMenuTypeName(),
+        source: "kiosk",
+      });
 
       const response = await apiRequest("POST", "/api/orders", orderData);
       return response;
@@ -48,9 +56,8 @@ export default function OrderSummary() {
       
       // Add to cart if cart is active
       if (isActive) {
-        // Get customer name from the DOM element set by OrderWrapper
-        const customerNameElement = document.querySelector('[data-customer-name]');
-        const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
+        // Use the customer name persisted by OrderWrapper in the order draft
+        const customerName = requireCustomerName(order.customerName);
         
         // Add item to cart (debounced to prevent rapid calls)
         debouncedAddItem({
@@ -77,7 +84,7 @@ export default function OrderSummary() {
       
       localStorage.setItem('currentOrder', JSON.stringify(orderForStorage));
       
-      setStep(5);
+      setStep(ORDER_STEPS.CONFIRMATION);
       toast({
         title: "Order Placed!",
         description: `Your order #${data.orderNumber} has been confirmed.`
@@ -86,7 +93,7 @@ export default function OrderSummary() {
     onError: (error) => {
       toast({
         title: "Order Failed",
-        description: "There was an error placing your order. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error placing your order. Please try again.",
         variant: "destructive"
       });
     }
@@ -106,13 +113,16 @@ export default function OrderSummary() {
       // Submit all cart items as individual orders
       for (const item of items) {
         const orderData = {
-          totalAmount: item.totalPrice.toFixed(2),
-          items: item.orderData,
-          customerName: item.customerName,
-          menuType: item.menuType
+          ...buildOrderPayload({
+            customerName: item.customerName,
+            totalAmount: item.totalPrice,
+            items: item.orderData,
+            menuType: item.menuType,
+            source: "group-cart",
+          })
         };
         
-        await apiRequest("/api/orders", "POST", orderData);
+        await apiRequest("POST", "/api/orders", orderData);
       }
       
       toast({
@@ -133,6 +143,18 @@ export default function OrderSummary() {
   };
 
   const handleAddToOrder = () => {
+    let customerName: string;
+    try {
+      customerName = requireCustomerName(order.customerName);
+    } catch (error) {
+      toast({
+        title: "Customer Name Required",
+        description: error instanceof Error ? error.message : "Please enter a customer name before adding to a group order.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isActive) {
       // Create a new cart
       const generateFriendlyCartId = () => {
@@ -147,10 +169,7 @@ export default function OrderSummary() {
       const newCartId = generateFriendlyCartId();
       setCartId(newCartId);
       
-      // Add the current order to the cart - get customer name from OrderWrapper
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-      
+      // Add the current order to the cart with the order draft customer name
       const orderDataForCart = {
         base: order.base,
         sauces: order.sauces,
@@ -289,7 +308,7 @@ export default function OrderSummary() {
       <div className="flex flex-col gap-4">
         <div className="flex gap-4 justify-between">
           <Button
-            onClick={() => setStep(3)}
+            onClick={() => setStep(ORDER_STEPS.TOPPINGS)}
             variant="outline"
             className="flex-1"
             aria-label="Edit order and return to previous step"

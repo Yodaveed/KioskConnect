@@ -59,7 +59,7 @@ export function validateBody(schema: z.ZodSchema) {
 }
 
 // Validation middleware for partial updates
-export function validatePartialBody(schema: z.ZodSchema) {
+export function validatePartialBody(schema: z.ZodObject<any>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = schema.partial().parse(req.body);
@@ -103,7 +103,7 @@ export const createRateLimit = (windowMs: number, max: number, message: string) 
     standardHeaders: true,
     legacyHeaders: false,
     // Skip rate limiting for admin endpoints with valid tokens in development
-    skip: (req) => process.env.NODE_ENV === 'development' && req.headers.authorization?.startsWith('Bearer'),
+    skip: (req) => Boolean(process.env.NODE_ENV === 'development' && req.headers.authorization?.startsWith('Bearer')),
   });
 
 // Specific rate limits for different endpoints

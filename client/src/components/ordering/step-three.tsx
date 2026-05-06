@@ -4,21 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder } from "@/hooks/use-order";
 import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepThree() {
   const { toggleTopping, setStep, order, selectedMenuId } = useOrder();
 
-  const { data: toppingItems = [], isLoading } = useQuery({
+  const { data: toppingItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/topping?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
-  const { data: currentMenu } = useQuery({
+  const { data: menus = [] } = useQuery<Menu[]>({
     queryKey: ['/api/menus'],
-    select: (menus: Menu[]) => menus.find(menu => menu.id === selectedMenuId),
   });
+  const currentMenu = menus.find(menu => menu.id === selectedMenuId);
 
   const getPricingRules = () => {
     return currentMenu?.pricingRules || {};
@@ -29,7 +29,7 @@ export default function StepThree() {
   };
 
   const getToppingPrice = (item: MenuItem, selectedCount: number) => {
-    const rules = getPricingRules();
+    const rules = getPricingRules() as any;
     const toppingRules = rules.topping || { freeLimit: 4, additionalPrice: 0.25 };
     
     const basePrice = parseFloat(item.price.toString());
@@ -52,13 +52,13 @@ export default function StepThree() {
   };
 
   const handleContinue = () => {
-    setStep(4);
+    setStep(ORDER_STEPS.REVIEW);
   };
 
   const handleSkip = () => {
     // Clear all toppings and continue
     // Note: This would require a method to clear toppings, for now just continue
-    setStep(4);
+    setStep(ORDER_STEPS.REVIEW);
   };
 
   const isToppingSelected = (itemId: number) => {
@@ -100,7 +100,7 @@ export default function StepThree() {
                   <Checkbox
                     checked={isSelected}
                     onChange={() => handleToggleTopping(item)}
-                    disabled={item.isSoldOut}
+                    disabled={!!item.isSoldOut}
                     className="text-primary"
                   />
                   <div className="flex-1">
@@ -133,7 +133,7 @@ export default function StepThree() {
 
       <div className="mt-8 flex justify-between">
         <Button
-          onClick={() => setStep(2)}
+          onClick={() => setStep(ORDER_STEPS.SAUCE)}
           variant="outline"
           className="px-8 py-3 rounded-full font-medium"
         >

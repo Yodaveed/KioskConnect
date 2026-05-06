@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, ArrowRight } from "lucide-react";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { debounce } from "@/lib/debounce";
+import { buildOrderPayload, requireCustomerName } from "@/lib/order-payload";
 import type { MenuItem } from "@shared/schema";
 
 interface FreezeStickSelection {
@@ -22,7 +23,7 @@ interface FreezeStickSelection {
 }
 
 export default function FreezeSticksFlow() {
-  const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
+  const { setStep, setOrderNumber, resetOrder, selectedMenuId, order } = useOrder();
   const { isActive, addItem, setCartId } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -37,17 +38,17 @@ export default function FreezeSticksFlow() {
     additionalSauces: 0,
   });
 
-  const { data: sizes = [] } = useQuery({
+  const { data: sizes = [] } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/size?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
-  const { data: flavors = [] } = useQuery({
+  const { data: flavors = [] } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/base?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
-  const { data: sauces = [] } = useQuery({
+  const { data: sauces = [] } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/sauce?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
@@ -151,9 +152,6 @@ export default function FreezeSticksFlow() {
 
   const submitOrderMutation = useMutation({
     mutationFn: async () => {
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-      
       const customOrder = {
         menuType: "freeze-sticks",
         items: [
@@ -191,11 +189,13 @@ export default function FreezeSticksFlow() {
         total: calculateTotal()
       };
       
-      const orderData = {
-        customerName,
-        totalAmount: calculateTotal().toFixed(2),
+      const orderData = buildOrderPayload({
+        customerName: order.customerName,
+        totalAmount: calculateTotal(),
         items: customOrder,
-      };
+        menuType: "Freeze Sticks",
+        source: "kiosk",
+      });
 
       const response = await apiRequest("POST", "/api/orders", orderData);
       return response;
@@ -258,7 +258,7 @@ export default function FreezeSticksFlow() {
       });
       
       // Go to confirmation
-      setStep(4);
+      setStep(ORDER_STEPS.CONFIRMATION);
       
       toast({
         title: "Order Placed!",
@@ -279,6 +279,18 @@ export default function FreezeSticksFlow() {
   };
 
   const handleAddToOrder = () => {
+    let customerName: string;
+    try {
+      customerName = requireCustomerName(order.customerName);
+    } catch (error) {
+      toast({
+        title: "Customer Name Required",
+        description: error instanceof Error ? error.message : "Please enter a customer name before adding to a group order.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const customOrder = {
       menuType: "freeze-sticks",
       items: [
@@ -330,9 +342,6 @@ export default function FreezeSticksFlow() {
       const newCartId = generateFriendlyCartId();
       setCartId(newCartId);
       
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-      
       debouncedAddItem({
         customerName,
         menuType: "Freeze Sticks",
@@ -350,9 +359,6 @@ export default function FreezeSticksFlow() {
       });
     } else {
       // Add to existing cart
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-      
       debouncedAddItem({
         customerName,
         menuType: "Freeze Sticks",

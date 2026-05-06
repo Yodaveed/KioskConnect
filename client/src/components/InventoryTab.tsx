@@ -49,7 +49,7 @@ export default function InventoryTab() {
     },
   });
 
-  const { data: inventoryResponse, isLoading } = useQuery({
+  const { data: inventoryResponse, isLoading } = useQuery<InventoryItem[] | { inventory?: InventoryItem[] }>({
     queryKey: ["/api/inventory"],
   });
 

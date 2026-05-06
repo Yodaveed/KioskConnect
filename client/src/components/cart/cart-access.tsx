@@ -30,7 +30,7 @@ export default function CartAccess({ onCartLoaded }: CartAccessProps) {
   // Create new cart mutation
   const createCartMutation = useMutation({
     mutationFn: async (data: { cartId: string }) => {
-      return await apiRequest('/api/carts', 'POST', {
+      return await apiRequest('POST', '/api/carts', {
         cartId: data.cartId,
         items: [],
         totalAmount: 0
@@ -61,7 +61,7 @@ export default function CartAccess({ onCartLoaded }: CartAccessProps) {
     queryFn: async () => {
       if (!cartId) return null;
       try {
-        const response = await apiRequest(`/api/carts/${cartId}`);
+        const response = await apiRequest('GET', `/api/carts/${cartId}`);
         return response;
       } catch (error) {
         return null;

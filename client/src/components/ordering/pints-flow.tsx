@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { MobileSafeImage } from "@/components/ui/mobile-safe-image";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, ShoppingCart, Check, ArrowRight } from "lucide-react";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder } from "@/hooks/use-order";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { debounce } from "@/lib/debounce";
+import { buildOrderPayload, requireCustomerName } from "@/lib/order-payload";
 import type { MenuItem } from "@shared/schema";
 
 interface PintSelection {
@@ -19,7 +20,7 @@ interface PintSelection {
 }
 
 export default function PintsFlow() {
-  const { setStep, setOrderNumber, resetOrder, selectedMenuId } = useOrder();
+  const { setStep, setOrderNumber, resetOrder, selectedMenuId, order } = useOrder();
   const { isActive, addItem, setCartId } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -28,7 +29,7 @@ export default function PintsFlow() {
   const debouncedAddItem = debounce(addItem, 300);
   const [selections, setSelections] = useState<PintSelection>({});
 
-  const { data: pints = [], isLoading } = useQuery({
+  const { data: pints = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/flavor?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
@@ -72,14 +73,13 @@ export default function PintsFlow() {
 
   const submitOrderMutation = useMutation({
     mutationFn: async () => {
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-      
-      const orderData = {
-        customerName,
-        totalAmount: getTotalPrice().toFixed(2),
+      const orderData = buildOrderPayload({
+        customerName: order.customerName,
+        totalAmount: getTotalPrice(),
         items: createOrderData(),
-      };
+        menuType: "Pints",
+        source: "kiosk",
+      });
 
       const response = await apiRequest("POST", "/api/orders", orderData);
       return response;
@@ -101,7 +101,7 @@ export default function PintsFlow() {
       setSelections({});
       
       // Go to confirmation
-      setStep(4);
+      setStep(ORDER_STEPS.CONFIRMATION);
       
       toast({
         title: "Order Placed!",
@@ -123,6 +123,17 @@ export default function PintsFlow() {
 
   const handleAddToOrder = () => {
     const customOrder = createOrderData();
+    let customerName: string;
+    try {
+      customerName = requireCustomerName(order.customerName);
+    } catch (error) {
+      toast({
+        title: "Customer Name Required",
+        description: error instanceof Error ? error.message : "Please enter a customer name before adding to a group order.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!isActive) {
       // Create a new cart
@@ -137,9 +148,6 @@ export default function PintsFlow() {
       
       const newCartId = generateFriendlyCartId();
       setCartId(newCartId);
-      
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
       
       debouncedAddItem({
         customerName,
@@ -157,9 +165,6 @@ export default function PintsFlow() {
       setSelections({});
     } else {
       // Add to existing cart
-      const customerNameElement = document.querySelector('[data-customer-name]');
-      const customerName = customerNameElement?.getAttribute('data-customer-name') || 'Unknown Customer';
-      
       debouncedAddItem({
         customerName,
         menuType: "Pints",
@@ -194,7 +199,7 @@ export default function PintsFlow() {
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No menu selected</p>
-          <Button onClick={() => setStep(0)} variant="outline">
+          <Button onClick={() => setStep(ORDER_STEPS.MENU)} variant="outline">
             Go to Menu Selection
           </Button>
         </div>
@@ -207,7 +212,7 @@ export default function PintsFlow() {
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No pints available for this menu</p>
-          <Button onClick={() => resetOrder() && setLocation('/')} variant="outline">
+          <Button onClick={() => { resetOrder(); setLocation('/'); }} variant="outline">
             Back to Menu Selection
           </Button>
         </div>

@@ -4,21 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useOrder } from "@/hooks/use-order";
+import { ORDER_STEPS, useOrder } from "@/hooks/use-order";
 import type { MenuItem, Menu } from "@shared/schema";
 
 export default function StepTwo() {
   const { toggleSauce, setStep, order, selectedMenuId } = useOrder();
 
-  const { data: sauceItems = [], isLoading } = useQuery({
+  const { data: sauceItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: [`/api/menu/sauce?menuId=${selectedMenuId}`],
     enabled: !!selectedMenuId,
   });
 
-  const { data: currentMenu } = useQuery({
+  const { data: menus = [] } = useQuery<Menu[]>({
     queryKey: ['/api/menus'],
-    select: (menus: Menu[]) => menus.find(menu => menu.id === selectedMenuId),
   });
+  const currentMenu = menus.find(menu => menu.id === selectedMenuId);
 
   const getPricingRules = () => {
     return currentMenu?.pricingRules || {};
@@ -29,7 +29,7 @@ export default function StepTwo() {
   };
 
   const getSaucePrice = (item: MenuItem, selectedCount: number) => {
-    const rules = getPricingRules();
+    const rules = getPricingRules() as any;
     const sauceRules = rules.sauce || { freeLimit: 2, additionalPrice: 0.25 };
     
     const basePrice = parseFloat(item.price.toString());
@@ -52,12 +52,12 @@ export default function StepTwo() {
   };
 
   const handleContinue = () => {
-    setStep(3);
+    setStep(ORDER_STEPS.TOPPINGS);
   };
 
   const handleSkip = () => {
     // Clear all sauces and continue
-    setStep(3);
+    setStep(ORDER_STEPS.TOPPINGS);
   };
 
   const isSauceSelected = (itemId: number) => {
@@ -104,7 +104,7 @@ export default function StepTwo() {
               role="button"
               aria-label={`${item.name} sauce, $${price.toFixed(2)}${item.isSoldOut ? ' - sold out' : ''}${isSelected ? ' - selected' : ''}`}
               aria-pressed={isSelected}
-              aria-disabled={item.isSoldOut}
+              aria-disabled={!!item.isSoldOut}
               className={`cursor-pointer transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                 item.isSoldOut
                   ? "opacity-50 cursor-not-allowed"
@@ -127,7 +127,7 @@ export default function StepTwo() {
                   <Checkbox
                     checked={isSelected}
                     onChange={() => handleToggleSauce(item)}
-                    disabled={item.isSoldOut}
+                    disabled={!!item.isSoldOut}
                     className="text-primary"
                   />
                   <div className="flex-1">
@@ -165,7 +165,7 @@ export default function StepTwo() {
 
       <div className="mt-8 flex justify-between">
         <Button
-          onClick={() => setStep(1)}
+          onClick={() => setStep(ORDER_STEPS.BASE)}
           variant="outline"
           className="px-8 py-3 rounded-full font-medium"
         >

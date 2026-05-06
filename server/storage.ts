@@ -134,7 +134,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(menuItems)
         .where(and(
-          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId).filter(Boolean)),
+          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId).filter((id): id is number => id !== null)),
           eq(menuItems.isActive, true)
         ));
     }
@@ -158,7 +158,7 @@ export class DatabaseStorage implements IStorage {
         .from(menuItems)
         .where(and(
           eq(menuItems.category, category),
-          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId).filter(Boolean)),
+          inArray(menuItems.id, menuItemIds.map(item => item.menuItemId).filter((id): id is number => id !== null)),
           eq(menuItems.isActive, true)
         ));
     }
@@ -409,12 +409,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(inventoryItems.id, id))
       .returning();
     return updated;
-  }
-
-  async archiveInventoryItem(id: number): Promise<void> {
-    await db.update(inventoryItems)
-      .set({ archived: true, updatedAt: new Date() })
-      .where(eq(inventoryItems.id, id));
   }
 
   async adjustInventoryItem(adjustmentData: InsertInventoryAdjustment): Promise<InventoryItem> {

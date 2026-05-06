@@ -195,8 +195,8 @@ export default function MenuTab() {
         category: item.category as any,
         price: item.price.toString(),
         imageUrl: item.imageUrl || "",
-        isActive: item.isActive,
-        isPremium: item.isPremium,
+        isActive: item.isActive ?? true,
+        isPremium: item.isPremium ?? false,
         menuIds: menuIds,
       });
       setSelectedMenus(menuIds);
@@ -208,8 +208,8 @@ export default function MenuTab() {
         category: item.category as any,
         price: item.price.toString(),
         imageUrl: item.imageUrl || "",
-        isActive: item.isActive,
-        isPremium: item.isPremium,
+        isActive: item.isActive ?? true,
+        isPremium: item.isPremium ?? false,
         menuIds: [],
       });
       setSelectedMenus([]);

@@ -1,13 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, DollarSign, TrendingUp, Users, Package, Clock } from "lucide-react";
+import type { Order } from "@shared/schema";
+
+interface AnalyticsStats {
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  popularItems: { name: string; count: number }[];
+}
 
 export default function DashboardTab() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<AnalyticsStats>({
     queryKey: ["/api/analytics/stats"],
   });
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
